@@ -1,0 +1,172 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { requireAdmin, requireProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+
+export type AppointmentFormState = {
+  error?: string;
+};
+
+function friendlyDbError(message: string): string {
+  if (message.includes("appointments_no_overlap_per_collaborator")) {
+    return "Esse colaborador já tem um agendamento nesse horário.";
+  }
+  if (message.includes("appointments_no_overlap_per_maca")) {
+    return "Essa maca já está ocupada nesse horário.";
+  }
+  if (message.includes("ends_after_starts")) {
+    return "O horário final precisa ser depois do horário inicial.";
+  }
+  if (message.includes("não utiliza maca")) {
+    return "Body piercer não utiliza maca — deixe o campo em branco.";
+  }
+  return "Não foi possível salvar o agendamento. Confira os dados e tente de novo.";
+}
+
+function readAppointmentForm(formData: FormData) {
+  const collaborator_id = String(formData.get("collaborator_id") ?? "");
+  const maca_id = String(formData.get("maca_id") ?? "") || null;
+  const client_name = String(formData.get("client_name") ?? "").trim();
+  const client_phone = String(formData.get("client_phone") ?? "").trim();
+  const notes = String(formData.get("notes") ?? "").trim();
+  const starts_at_raw = String(formData.get("starts_at") ?? "");
+  const ends_at_raw = String(formData.get("ends_at") ?? "");
+  const deposit_amount_raw = String(formData.get("deposit_amount") ?? "0")
+    .trim()
+    .replace(",", ".");
+  const deposit_status = String(formData.get("deposit_status") ?? "pendente");
+
+  if (!collaborator_id || !client_name || !starts_at_raw || !ends_at_raw) {
+    return { error: "Preencha colaborador, cliente e o horário." } as const;
+  }
+
+  const starts_at = new Date(starts_at_raw);
+  const ends_at = new Date(ends_at_raw);
+  if (Number.isNaN(starts_at.getTime()) || Number.isNaN(ends_at.getTime())) {
+    return { error: "Horário inválido." } as const;
+  }
+  if (ends_at <= starts_at) {
+    return { error: "O horário final precisa ser depois do inicial." } as const;
+  }
+
+  const deposit_amount = deposit_amount_raw === "" ? 0 : Number(deposit_amount_raw);
+  if (Number.isNaN(deposit_amount) || deposit_amount < 0) {
+    return { error: "Valor do sinal inválido." } as const;
+  }
+  if (deposit_status !== "pago" && deposit_status !== "pendente") {
+    return { error: "Status do sinal inválido." } as const;
+  }
+
+  return {
+    data: {
+      collaborator_id,
+      maca_id,
+      client_name,
+      client_phone,
+      notes,
+      starts_at: starts_at.toISOString(),
+      ends_at: ends_at.toISOString(),
+      deposit_amount,
+      deposit_status: deposit_status as "pago" | "pendente",
+    },
+  } as const;
+}
+
+export async function createAppointment(
+  _prevState: AppointmentFormState,
+  formData: FormData
+): Promise<AppointmentFormState> {
+  const { user, profile } = await requireProfile();
+
+  const parsed = readAppointmentForm(formData);
+  if ("error" in parsed) return { error: parsed.error };
+
+  if (parsed.data.collaborator_id !== user.id && profile.role !== "admin") {
+    return { error: "Você só pode criar agendamentos para você mesmo." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("appointments").insert(parsed.data);
+
+  if (error) return { error: friendlyDbError(error.message) };
+
+  revalidatePath("/");
+  redirect("/");
+}
+
+export async function updateAppointment(
+  id: string,
+  _prevState: AppointmentFormState,
+  formData: FormData
+): Promise<AppointmentFormState> {
+  const { user, profile } = await requireProfile();
+
+  const parsed = readAppointmentForm(formData);
+  if ("error" in parsed) return { error: parsed.error };
+
+  if (parsed.data.collaborator_id !== user.id && profile.role !== "admin") {
+    return { error: "Você só pode editar os seus próprios agendamentos." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("appointments")
+    .update(parsed.data)
+    .eq("id", id);
+
+  if (error) return { error: friendlyDbError(error.message) };
+
+  revalidatePath("/");
+  redirect("/");
+}
+
+export async function cancelAppointment(id: string) {
+  await requireProfile();
+  const supabase = await createClient();
+  // RLS already restricts this to own appointment (or admin); the update
+  // simply affects 0 rows if the caller isn't allowed to touch it.
+  await supabase
+    .from("appointments")
+    .update({ status: "cancelado" })
+    .eq("id", id);
+  revalidatePath("/");
+}
+
+export type MacaFormState = {
+  error?: string;
+};
+
+export async function createMaca(
+  _prevState: MacaFormState,
+  formData: FormData
+): Promise<MacaFormState> {
+  await requireAdmin();
+  const label = String(formData.get("label") ?? "").trim();
+  if (!label) return { error: "Dê um nome pra maca." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("macas").insert({ label });
+  if (error) return { error: "Não foi possível criar a maca." };
+
+  revalidatePath("/macas");
+  return {};
+}
+
+export async function setMacaActive(id: string, active: boolean) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase.from("macas").update({ active }).eq("id", id);
+  revalidatePath("/macas");
+  revalidatePath("/");
+}
+
+export async function renameMaca(id: string, label: string) {
+  await requireAdmin();
+  if (!label.trim()) return;
+  const supabase = await createClient();
+  await supabase.from("macas").update({ label: label.trim() }).eq("id", id);
+  revalidatePath("/macas");
+  revalidatePath("/");
+}

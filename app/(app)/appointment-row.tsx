@@ -1,0 +1,111 @@
+"use client";
+
+import { useTransition } from "react";
+import Link from "next/link";
+import { cancelAppointment } from "@/app/actions/agenda";
+import type { AppointmentWithRelations } from "@/lib/types/database";
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatMoney(value: number) {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
+export function AppointmentRow({
+  appointment,
+  canEdit,
+  roleLabel,
+}: {
+  appointment: AppointmentWithRelations;
+  canEdit: boolean;
+  roleLabel: Record<string, string>;
+}) {
+  const [pending, startTransition] = useTransition();
+  const cancelled = appointment.status === "cancelado";
+
+  return (
+    <tr
+      className={`border-b border-neutral-800 align-top ${
+        cancelled ? "opacity-50" : ""
+      }`}
+    >
+      <td className="py-3 pl-4 pr-4 whitespace-nowrap text-neutral-200">
+        {formatTime(appointment.starts_at)} – {formatTime(appointment.ends_at)}
+      </td>
+      <td className="py-3 pr-4">
+        <div className="text-neutral-100">
+          {appointment.collaborator?.full_name || "—"}
+        </div>
+        <div className="text-xs text-neutral-500">
+          {roleLabel[appointment.collaborator?.role ?? ""] ?? ""}
+        </div>
+      </td>
+      <td className="py-3 pr-4">
+        <div className="text-neutral-100">{appointment.client_name}</div>
+        {appointment.client_phone && (
+          <div className="text-xs text-neutral-500">
+            {appointment.client_phone}
+          </div>
+        )}
+      </td>
+      <td className="py-3 pr-4 text-neutral-300">
+        {appointment.maca?.label ?? "—"}
+      </td>
+      <td className="py-3 pr-4">
+        <span
+          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+            cancelled
+              ? "bg-neutral-700/40 text-neutral-400"
+              : "bg-green-500/15 text-green-400"
+          }`}
+        >
+          {cancelled ? "Cancelado" : "Confirmado"}
+        </span>
+      </td>
+      <td className="py-3 pr-4">
+        <div className="text-neutral-200">
+          {formatMoney(appointment.deposit_amount)}
+        </div>
+        <span
+          className={`text-xs font-medium ${
+            appointment.deposit_status === "pago"
+              ? "text-green-400"
+              : "text-amber-400"
+          }`}
+        >
+          {appointment.deposit_status === "pago" ? "Pago" : "Pendente"}
+        </span>
+      </td>
+      <td className="py-3 pr-4">
+        {canEdit && !cancelled && (
+          <div className="flex items-center gap-3 text-sm">
+            <Link
+              href={`/agendamentos/${appointment.id}/editar`}
+              className="text-neutral-400 hover:text-white"
+            >
+              Editar
+            </Link>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() =>
+                startTransition(() => cancelAppointment(appointment.id))
+              }
+              className="text-red-400 hover:text-red-300 disabled:opacity-60"
+            >
+              Cancelar
+            </button>
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+}
