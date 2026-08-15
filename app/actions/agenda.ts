@@ -19,14 +19,18 @@ function friendlyDbError(message: string): string {
   if (message.includes("ends_after_starts")) {
     return "O horário final precisa ser depois do horário inicial.";
   }
-  if (message.includes("não utiliza maca")) {
+  if (message.includes("nao utiliza maca")) {
     return "Body piercer não utiliza maca — deixe o campo em branco.";
+  }
+  if (message.includes("nao pertence a unidade")) {
+    return "Essa maca não pertence à unidade selecionada.";
   }
   return "Não foi possível salvar o agendamento. Confira os dados e tente de novo.";
 }
 
 function readAppointmentForm(formData: FormData) {
   const collaborator_id = String(formData.get("collaborator_id") ?? "");
+  const unit_id = String(formData.get("unit_id") ?? "");
   const maca_id = String(formData.get("maca_id") ?? "") || null;
   const client_name = String(formData.get("client_name") ?? "").trim();
   const client_phone = String(formData.get("client_phone") ?? "").trim();
@@ -38,8 +42,16 @@ function readAppointmentForm(formData: FormData) {
     .replace(",", ".");
   const deposit_status = String(formData.get("deposit_status") ?? "pendente");
 
-  if (!collaborator_id || !client_name || !starts_at_raw || !ends_at_raw) {
-    return { error: "Preencha colaborador, cliente e o horário." } as const;
+  if (
+    !collaborator_id ||
+    !unit_id ||
+    !client_name ||
+    !starts_at_raw ||
+    !ends_at_raw
+  ) {
+    return {
+      error: "Preencha colaborador, unidade, cliente e o horário.",
+    } as const;
   }
 
   const starts_at = new Date(starts_at_raw);
@@ -62,6 +74,7 @@ function readAppointmentForm(formData: FormData) {
   return {
     data: {
       collaborator_id,
+      unit_id,
       maca_id,
       client_name,
       client_phone,
@@ -134,6 +147,13 @@ export async function cancelAppointment(id: string) {
   revalidatePath("/");
 }
 
+export async function deleteAppointment(id: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase.from("appointments").delete().eq("id", id);
+  revalidatePath("/");
+}
+
 export type MacaFormState = {
   error?: string;
 };
@@ -144,11 +164,19 @@ export async function createMaca(
 ): Promise<MacaFormState> {
   await requireAdmin();
   const label = String(formData.get("label") ?? "").trim();
+  const unit_id = String(formData.get("unit_id") ?? "");
   if (!label) return { error: "Dê um nome pra maca." };
+  if (!unit_id) return { error: "Selecione a unidade." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("macas").insert({ label });
-  if (error) return { error: "Não foi possível criar a maca." };
+  const { error } = await supabase.from("macas").insert({ label, unit_id });
+  if (error) {
+    return {
+      error: error.message.includes("macas_unit_id_label_key")
+        ? "Já existe uma maca com esse nome nessa unidade."
+        : "Não foi possível criar a maca.",
+    };
+  }
 
   revalidatePath("/macas");
   return {};

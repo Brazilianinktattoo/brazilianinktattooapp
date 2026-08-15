@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { updateAppointment } from "@/app/actions/agenda";
-import type { Appointment, Maca, Profile } from "@/lib/types/database";
+import type { Appointment, Maca, Profile, Unit } from "@/lib/types/database";
 import { AppointmentForm } from "../../appointment-form";
 
 export default async function EditarAgendamentoPage(
@@ -24,20 +24,27 @@ export default async function EditarAgendamentoPage(
     appointment.collaborator_id === user.id || profile.role === "admin";
   if (!canEdit) redirect("/");
 
-  const [{ data: collaborators }, { data: macas }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, full_name, role")
-      .eq("active", true)
-      .order("full_name")
-      .returns<Pick<Profile, "id" | "full_name" | "role">[]>(),
-    supabase
-      .from("macas")
-      .select("*")
-      .eq("active", true)
-      .order("label")
-      .returns<Maca[]>(),
-  ]);
+  const [{ data: collaborators }, { data: units }, { data: macas }] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, role")
+        .eq("active", true)
+        .order("full_name")
+        .returns<Pick<Profile, "id" | "full_name" | "role">[]>(),
+      supabase
+        .from("units")
+        .select("*")
+        .eq("active", true)
+        .order("name")
+        .returns<Unit[]>(),
+      supabase
+        .from("macas")
+        .select("*")
+        .eq("active", true)
+        .order("label")
+        .returns<Maca[]>(),
+    ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -46,6 +53,7 @@ export default async function EditarAgendamentoPage(
         action={updateAppointment.bind(null, id)}
         appointment={appointment}
         collaborators={collaborators ?? []}
+        units={units ?? []}
         macas={macas ?? []}
         currentUser={{ id: user.id, role: profile.role }}
       />

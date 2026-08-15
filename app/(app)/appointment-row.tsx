@@ -2,7 +2,8 @@
 
 import { useTransition } from "react";
 import Link from "next/link";
-import { cancelAppointment } from "@/app/actions/agenda";
+import { cancelAppointment, deleteAppointment } from "@/app/actions/agenda";
+import { openComanda } from "@/app/actions/comandas";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
 function formatTime(iso: string) {
@@ -22,10 +23,12 @@ function formatMoney(value: number) {
 export function AppointmentRow({
   appointment,
   canEdit,
+  isAdmin,
   roleLabel,
 }: {
   appointment: AppointmentWithRelations;
   canEdit: boolean;
+  isAdmin: boolean;
   roleLabel: Record<string, string>;
 }) {
   const [pending, startTransition] = useTransition();
@@ -39,6 +42,9 @@ export function AppointmentRow({
     >
       <td className="py-3 pl-4 pr-4 whitespace-nowrap text-neutral-200">
         {formatTime(appointment.starts_at)} – {formatTime(appointment.ends_at)}
+      </td>
+      <td className="py-3 pr-4 text-neutral-300">
+        {appointment.unit?.name ?? "—"}
       </td>
       <td className="py-3 pr-4">
         <div className="text-neutral-100">
@@ -85,26 +91,55 @@ export function AppointmentRow({
         </span>
       </td>
       <td className="py-3 pr-4">
-        {canEdit && !cancelled && (
-          <div className="flex items-center gap-3 text-sm">
-            <Link
-              href={`/agendamentos/${appointment.id}/editar`}
-              className="text-neutral-400 hover:text-white"
-            >
-              Editar
-            </Link>
+        <div className="flex items-center gap-3 text-sm">
+          {canEdit && !cancelled && (
+            <>
+              <Link
+                href={`/agendamentos/${appointment.id}/editar`}
+                className="text-neutral-400 hover:text-white"
+              >
+                Editar
+              </Link>
+              <form action={openComanda}>
+                <input type="hidden" name="appointment_id" value={appointment.id} />
+                <button
+                  type="submit"
+                  className="text-neutral-400 hover:text-white"
+                >
+                  Comanda
+                </button>
+              </form>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() =>
+                  startTransition(() => cancelAppointment(appointment.id))
+                }
+                className="text-red-400 hover:text-red-300 disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+            </>
+          )}
+          {isAdmin && (
             <button
               type="button"
               disabled={pending}
-              onClick={() =>
-                startTransition(() => cancelAppointment(appointment.id))
-              }
-              className="text-red-400 hover:text-red-300 disabled:opacity-60"
+              onClick={() => {
+                if (
+                  confirm(
+                    `Excluir definitivamente o agendamento de ${appointment.client_name}? Essa ação não pode ser desfeita.`
+                  )
+                ) {
+                  startTransition(() => deleteAppointment(appointment.id));
+                }
+              }}
+              className="text-neutral-500 hover:text-red-400 disabled:opacity-60"
             >
-              Cancelar
+              Excluir
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </td>
     </tr>
   );

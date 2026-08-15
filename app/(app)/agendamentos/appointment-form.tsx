@@ -3,7 +3,7 @@
 import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
 import type { AppointmentFormState } from "@/app/actions/agenda";
-import type { Appointment, Maca, UserRole } from "@/lib/types/database";
+import type { Appointment, Maca, Unit, UserRole } from "@/lib/types/database";
 
 type CollaboratorOption = {
   id: string;
@@ -29,6 +29,7 @@ export function AppointmentForm({
   action,
   appointment,
   collaborators,
+  units,
   macas,
   currentUser,
   defaultDate,
@@ -39,6 +40,7 @@ export function AppointmentForm({
   ) => Promise<AppointmentFormState>;
   appointment?: Appointment;
   collaborators: CollaboratorOption[];
+  units: Unit[];
   macas: Maca[];
   currentUser: { id: string; role: UserRole };
   defaultDate?: string;
@@ -49,6 +51,10 @@ export function AppointmentForm({
   const [collaboratorId, setCollaboratorId] = useState(
     appointment?.collaborator_id ?? currentUser.id
   );
+  const [unitId, setUnitId] = useState(
+    appointment?.unit_id ?? (units.length === 1 ? units[0].id : "")
+  );
+  const [macaId, setMacaId] = useState(appointment?.maca_id ?? "");
 
   const selectedRole = useMemo(
     () => collaborators.find((c) => c.id === collaboratorId)?.role,
@@ -56,6 +62,10 @@ export function AppointmentForm({
   );
 
   const showMaca = selectedRole === "tatuador";
+  const macasInUnit = useMemo(
+    () => macas.filter((m) => m.unit_id === unitId),
+    [macas, unitId]
+  );
 
   const defaultStart = appointment
     ? toLocalInputValue(appointment.starts_at)
@@ -122,6 +132,32 @@ export function AppointmentForm({
         </div>
       </div>
 
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="unit_id" className="text-sm text-neutral-300">
+          Unidade
+        </label>
+        <select
+          id="unit_id"
+          name="unit_id"
+          required
+          value={unitId}
+          onChange={(e) => {
+            setUnitId(e.target.value);
+            setMacaId("");
+          }}
+          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-red-500"
+        >
+          <option value="" disabled>
+            Selecione...
+          </option>
+          {units.map((u) => (
+            <option key={u.id} value={u.id}>
+              {u.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {showMaca && (
         <div className="flex flex-col gap-1.5">
           <label htmlFor="maca_id" className="text-sm text-neutral-300">
@@ -130,11 +166,13 @@ export function AppointmentForm({
           <select
             id="maca_id"
             name="maca_id"
-            defaultValue={appointment?.maca_id ?? ""}
-            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-red-500"
+            value={macaId}
+            onChange={(e) => setMacaId(e.target.value)}
+            disabled={!unitId}
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-red-500 disabled:opacity-60"
           >
             <option value="">Selecione...</option>
-            {macas.map((m) => (
+            {macasInUnit.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.label}
               </option>

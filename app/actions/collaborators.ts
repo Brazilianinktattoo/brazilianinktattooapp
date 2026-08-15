@@ -62,6 +62,47 @@ export async function updateCollaboratorRole(id: string, role: UserRole) {
   revalidatePath("/colaboradores");
 }
 
+export async function updateCollaboratorName(id: string, full_name: string) {
+  await requireAdmin();
+  if (!full_name.trim()) return;
+
+  const supabase = await createClient();
+  await supabase
+    .from("profiles")
+    .update({ full_name: full_name.trim() })
+    .eq("id", id);
+  revalidatePath("/colaboradores");
+}
+
+export type UpdateEmailState = {
+  error?: string;
+  success?: boolean;
+};
+
+export async function updateCollaboratorEmail(
+  id: string,
+  _prevState: UpdateEmailState,
+  formData: FormData
+): Promise<UpdateEmailState> {
+  await requireAdmin();
+
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) return { error: "Informe um e-mail." };
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(id, { email });
+  if (error) {
+    return {
+      error: error.message.includes("already been registered")
+        ? "Já existe um colaborador com esse e-mail."
+        : "Não foi possível trocar o e-mail.",
+    };
+  }
+
+  revalidatePath("/colaboradores");
+  return { success: true };
+}
+
 export async function setCollaboratorActive(id: string, active: boolean) {
   const { user } = await requireAdmin();
   if (id === user.id && !active) {

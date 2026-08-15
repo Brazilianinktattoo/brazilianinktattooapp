@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/actions/auth";
+import { NotificationBell } from "./notification-bell";
+import type { Notification } from "@/lib/types/database";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
@@ -13,7 +16,16 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { profile } = await requireProfile();
+  const { user, profile } = await requireProfile();
+
+  const supabase = await createClient();
+  const { data: notifications } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("profile_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(20)
+    .returns<Notification[]>();
 
   return (
     <div className="min-h-dvh bg-neutral-950 text-neutral-100">
@@ -38,12 +50,16 @@ export default async function AppLayout({
                   <Link href="/macas" className="hover:text-white">
                     Macas
                   </Link>
+                  <Link href="/estoque" className="hover:text-white">
+                    Estoque
+                  </Link>
                 </>
               )}
             </nav>
           </div>
 
           <div className="flex items-center gap-3 text-sm">
+            <NotificationBell notifications={notifications ?? []} />
             <div className="text-right leading-tight">
               <div className="text-neutral-200">
                 {profile.full_name || "Sem nome"}

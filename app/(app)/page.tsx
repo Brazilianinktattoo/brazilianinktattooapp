@@ -24,7 +24,7 @@ export default async function AgendaPage(props: PageProps<"/">) {
   const { data: appointments } = await supabase
     .from("appointments")
     .select(
-      "*, collaborator:profiles!appointments_collaborator_id_fkey(id, full_name, role), maca:macas(id, label)"
+      "*, collaborator:profiles!appointments_collaborator_id_fkey(id, full_name, role), maca:macas(id, label), unit:units(id, name)"
     )
     .gte("starts_at", start.toISOString())
     .lt("starts_at", end.toISOString())
@@ -76,6 +76,7 @@ export default async function AgendaPage(props: PageProps<"/">) {
           <thead>
             <tr className="border-b border-neutral-800 text-neutral-500">
               <th className="py-3 pl-4 pr-4 font-medium">Horário</th>
+              <th className="py-3 pr-4 font-medium">Unidade</th>
               <th className="py-3 pr-4 font-medium">Colaborador</th>
               <th className="py-3 pr-4 font-medium">Cliente</th>
               <th className="py-3 pr-4 font-medium">Maca</th>
@@ -92,6 +93,7 @@ export default async function AgendaPage(props: PageProps<"/">) {
                 canEdit={
                   appt.collaborator_id === user.id || profile.role === "admin"
                 }
+                isAdmin={profile.role === "admin"}
                 roleLabel={ROLE_LABEL}
               />
             ))}
