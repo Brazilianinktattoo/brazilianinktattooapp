@@ -1,23 +1,16 @@
 import { NextResponse } from "next/server";
+import { createHash } from "crypto";
 
 // DEBUG TEMPORÁRIO — remover depois de resolver o bug de login em produção.
-// Não expõe os valores reais, só metadados (tamanho, prefixo/sufixo curtos,
-// e posição de qualquer caractere fora do intervalo ASCII/Latin-1).
+// Só retorna hash SHA-256 + tamanho (nunca o valor em si, nem prefixo/sufixo
+// reais) — evita acionar a redação automática de segredos da Vercel nas
+// respostas de API, que mascara qualquer string parecida com um JWT.
 function inspect(value: string | undefined) {
   if (value === undefined) return { present: false };
-  const badChars: { index: number; code: number; char: string }[] = [];
-  for (let i = 0; i < value.length; i++) {
-    const code = value.charCodeAt(i);
-    if (code > 255) {
-      badChars.push({ index: i, code, char: value[i] });
-    }
-  }
   return {
     present: true,
     length: value.length,
-    prefix: value.slice(0, 12),
-    suffix: value.slice(-12),
-    badChars,
+    sha256: createHash("sha256").update(value).digest("hex"),
   };
 }
 
