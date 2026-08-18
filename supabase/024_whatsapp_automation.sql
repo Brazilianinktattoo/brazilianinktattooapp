@@ -23,17 +23,53 @@ insert into public.message_templates (trigger, body, active) values
   ('pos_tattoo_7', '', false)
 on conflict (trigger) do nothing;
 
--- Texto padrão novo, igual pros 5 gatilhos de pós-tattoo (o admin pode
--- personalizar cada um depois pela tela de Mensagens).
+-- Textos padrão de pós-tattoo, diferenciados por estágio da cicatrização
+-- (o admin pode personalizar cada um depois pela tela de Mensagens).
 update public.message_templates set body =
-$body$Olá! Esperamos que esteja curtindo sua nova tattoo 💛 Essa mensagem é para saber como está o processo de cicatrização!
+$body$Olá! Sua tattoo está fresquinha 💛 Nas próximas horas, alguns cuidados são essenciais:
 
-Lembrando dos cuidados: O filme protetor aplicado deve ficar na pele por até 4 dias — remova antes, com água morna, se acumular muito líquido embaixo dele. Após a saída total da película, aplique uma fina camada de hidratante da sua escolha, e para exposição ao sol, use protetor solar.
+🩹 O filme protetor deve ficar na pele por até 4 dias — se acumular muito líquido embaixo, remova com água morna antes disso
+🚫 Evite tocar, coçar ou deixar a região em contato com roupas apertadas
+🚿 Ao tomar banho, evite jato de água direto na tattoo
+
+Qualquer dúvida, fale com seu tatuador(a) ou com a gente!
+
+Um abraço da família BIT! 🖤$body$
+where trigger = 'pos_tattoo_1';
+
+update public.message_templates set body =
+$body$Olá! Já faz uma semana da sua tattoo 💛 Essa é a fase em que a pele começa a descamar — é normal, não arranque, deixe soltar sozinha.
+
+Lembrando: depois que o filme protetor sair por completo, aplique uma fina camada de hidratante da sua escolha, e evite sol direto na região.
 
 Qualquer dúvida, fale com seu tatuador(a) ou com a gente!
 
 Esperamos te ver em breve. Até lá! 🖤$body$
-where trigger in ('pos_tattoo_1', 'pos_tattoo_7', 'pos_tattoo_15', 'pos_tattoo_30', 'pos_tattoo_60');
+where trigger = 'pos_tattoo_7';
+
+update public.message_templates set body =
+$body$Olá! Já faz 15 dias da sua tattoo — como está a cicatrização? 💛 Nessa fase a pele já deve estar bem menos sensível, mas continue hidratando e usando protetor solar sempre que for se expor ao sol.
+
+Qualquer dúvida, fale com seu tatuador(a) ou com a gente!
+
+Esperamos te ver em breve. Até lá! 🖤$body$
+where trigger = 'pos_tattoo_15';
+
+update public.message_templates set body =
+$body$Olá! Um mês da sua nova tattoo 🎉 A essa altura ela já deve estar praticamente cicatrizada por completo. Continue hidratando a pele e usando protetor solar pra manter as cores vivas por muito mais tempo.
+
+Esperamos que esteja amando o resultado! Qualquer dúvida, estamos por aqui.
+
+Um abraço da família BIT! 🖤$body$
+where trigger = 'pos_tattoo_30';
+
+update public.message_templates set body =
+$body$Olá! Já se passaram 60 dias da sua tattoo — esperamos que esteja 100% cicatrizada e que você esteja curtindo muito o resultado 🖤
+
+Ficamos muito felizes em fazer parte dessa marca na sua história. Se puder, adoraríamos ver como ficou — manda uma fotinho pra gente!
+
+Sempre que quiser voltar pra fazer mais uma, é só chamar. Um abraço da família Brazilian Ink Tattoo! 🖤$body$
+where trigger = 'pos_tattoo_60';
 
 update public.message_templates set body =
 $body$Feliz aniversário, {{nome}}! 🎉🖤
