@@ -31,6 +31,7 @@ $body$Olá! Sua tattoo está fresquinha 💛 Antes de mais nada, obrigado por no
 🩹 O filme protetor deve ficar na pele por até 4 dias — se acumular muito líquido embaixo, remova com água morna antes disso
 🚫 Evite tocar, coçar ou deixar a região em contato com roupas apertadas
 🚿 Ao tomar banho, evite jato de água direto na tattoo
+🌊 Não esqueça dos cuidados indicados pelo seu tatuador(a): evite água do mar, piscina, sauna e exposição ao sol durante a cicatrização
 
 ⚠️ Se notar muito calor ou dor no local, vermelhidão excessiva ou muito inchaço, fale com seu tatuador(a) ou com a gente — estamos aqui pra te ajudar no que for preciso.
 
