@@ -20,7 +20,7 @@ export function LoginForm() {
           type="email"
           required
           autoComplete="username"
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-neutral-100 outline-none focus:border-red-500"
+          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-neutral-100 outline-none focus:border-gold"
           placeholder="voce@brazilianink.com"
         />
       </div>
@@ -35,7 +35,7 @@ export function LoginForm() {
           type="password"
           required
           autoComplete="current-password"
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-neutral-100 outline-none focus:border-red-500"
+          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2.5 text-neutral-100 outline-none focus:border-gold"
           placeholder="••••••••"
         />
       </div>
@@ -49,7 +49,7 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={pending}
-        className="mt-2 rounded-lg bg-red-600 px-4 py-2.5 font-medium text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+        className="mt-2 rounded-lg bg-gradient-to-b from-gold-strong to-gold shadow-[0_4px_14px_-4px_rgba(201,169,97,0.45)] px-4 py-2.5 font-medium text-neutral-950 transition hover:to-copper disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? "Entrando..." : "Entrar"}
       </button>

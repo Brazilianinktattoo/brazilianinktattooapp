@@ -17,6 +17,18 @@ export function dayBounds(dateParam: string) {
   return { start, end };
 }
 
+// [fromParam, toParam] inclusivo dos dois extremos.
+export function rangeBounds(fromParam: string, toParam: string) {
+  const start = new Date(`${fromParam}T00:00:00${STUDIO_OFFSET}`);
+  const end = new Date(`${toParam}T00:00:00${STUDIO_OFFSET}`);
+  end.setUTCDate(end.getUTCDate() + 1);
+  return { start, end };
+}
+
+export function monthStartParam(dateParam: string = todayParam()) {
+  return `${dateParam.slice(0, 7)}-01`;
+}
+
 export function formatDateLabel(dateParam: string) {
   return new Date(`${dateParam}T12:00:00Z`).toLocaleDateString("pt-BR", {
     weekday: "long",
