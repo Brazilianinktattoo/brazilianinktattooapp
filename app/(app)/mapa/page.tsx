@@ -8,6 +8,8 @@ const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
   tatuador: "Tatuador(a)",
   piercer: "Body Piercer",
+  chefe_piercing: "Chefe de Piercing",
+  visitante: "Visitante",
 };
 
 function formatTime(iso: string) {
@@ -67,19 +69,19 @@ export default async function MapaPage(props: PageProps<"/mapa">) {
         <div className="flex items-center gap-2">
           <Link
             href={`/mapa?date=${shiftDate(dateParam, -1)}`}
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-neutral-500 hover:text-white"
+            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             ← Anterior
           </Link>
           <Link
             href={`/mapa?date=${todayParam()}`}
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-neutral-500 hover:text-white"
+            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Hoje
           </Link>
           <Link
             href={`/mapa?date=${shiftDate(dateParam, 1)}`}
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-neutral-500 hover:text-white"
+            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Próximo →
           </Link>

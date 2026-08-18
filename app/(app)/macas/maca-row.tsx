@@ -21,7 +21,7 @@ export function MacaRow({ maca }: { maca: Maca }) {
               startTransition(() => renameMaca(maca.id, label));
             }
           }}
-          className="w-48 rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 outline-none focus:border-red-500 disabled:opacity-60"
+          className="w-48 rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 outline-none focus:border-gold disabled:opacity-60"
         />
       </td>
       <td className="py-3 pr-4">

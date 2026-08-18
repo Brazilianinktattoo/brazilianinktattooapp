@@ -15,8 +15,17 @@ import type { Profile, UserRole } from "@/lib/types/database";
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: "tatuador", label: "Tatuador(a)" },
   { value: "piercer", label: "Body Piercer" },
+  { value: "chefe_piercing", label: "Chefe de Piercing" },
   { value: "admin", label: "Admin" },
 ];
+
+const ROLE_LABEL: Record<UserRole, string> = {
+  admin: "Admin",
+  tatuador: "Tatuador(a)",
+  piercer: "Body Piercer",
+  chefe_piercing: "Chefe de Piercing",
+  visitante: "Visitante",
+};
 
 const initialResetState: ResetPasswordState = {};
 const initialEmailState: UpdateEmailState = {};
@@ -24,9 +33,11 @@ const initialEmailState: UpdateEmailState = {};
 export function CollaboratorRow({
   profile,
   isSelf,
+  canChangeRole = true,
 }: {
   profile: Profile;
   isSelf: boolean;
+  canChangeRole?: boolean;
 }) {
   const [role, setRole] = useState(profile.role);
   const [active, setActive] = useState(profile.active);
@@ -57,7 +68,7 @@ export function CollaboratorRow({
             }
           }}
           placeholder="Sem nome"
-          className="w-40 rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-neutral-100 outline-none hover:border-neutral-700 focus:border-red-500 focus:bg-neutral-900 disabled:opacity-60"
+          className="w-40 rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-neutral-100 outline-none hover:border-neutral-700 focus:border-gold focus:bg-neutral-900 disabled:opacity-60"
         />
         <div className="text-xs text-neutral-500">{profile.email}</div>
         <details className="mt-1 text-xs">
@@ -73,12 +84,12 @@ export function CollaboratorRow({
               name="email"
               defaultValue={profile.email}
               required
-              className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 outline-none focus:border-red-500"
+              className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 outline-none focus:border-gold"
             />
             <button
               type="submit"
               disabled={emailPending}
-              className="rounded-lg border border-neutral-700 px-3 py-1.5 text-neutral-300 hover:border-neutral-500 hover:text-white disabled:opacity-60"
+              className="rounded-lg border border-neutral-700 px-3 py-1.5 text-neutral-300 hover:border-gold-soft hover:text-gold disabled:opacity-60"
             >
               {emailPending ? "Salvando..." : "Salvar"}
             </button>
@@ -93,22 +104,28 @@ export function CollaboratorRow({
       </td>
 
       <td className="py-3 pr-4">
-        <select
-          value={role}
-          disabled={pending}
-          onChange={(e) => {
-            const next = e.target.value as UserRole;
-            setRole(next);
-            startTransition(() => updateCollaboratorRole(profile.id, next));
-          }}
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-neutral-100 outline-none focus:border-red-500 disabled:opacity-60"
-        >
-          {ROLE_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>
-              {opt.label}
-            </option>
-          ))}
-        </select>
+        {canChangeRole ? (
+          <select
+            value={role}
+            disabled={pending}
+            onChange={(e) => {
+              const next = e.target.value as UserRole;
+              setRole(next);
+              startTransition(() => updateCollaboratorRole(profile.id, next));
+            }}
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-sm text-neutral-100 outline-none focus:border-gold disabled:opacity-60"
+          >
+            {ROLE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="text-sm text-neutral-400">
+            {ROLE_LABEL[role] ?? role}
+          </span>
+        )}
       </td>
 
       <td className="py-3 pr-4">
@@ -147,12 +164,12 @@ export function CollaboratorRow({
               minLength={6}
               placeholder="Nova senha"
               required
-              className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 outline-none focus:border-red-500"
+              className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 outline-none focus:border-gold"
             />
             <button
               type="submit"
               disabled={resetPending}
-              className="rounded-lg border border-neutral-700 px-3 py-1.5 text-neutral-300 hover:border-neutral-500 hover:text-white disabled:opacity-60"
+              className="rounded-lg border border-neutral-700 px-3 py-1.5 text-neutral-300 hover:border-gold-soft hover:text-gold disabled:opacity-60"
             >
               {resetPending ? "Salvando..." : "Salvar"}
             </button>

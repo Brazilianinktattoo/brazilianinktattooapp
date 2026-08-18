@@ -35,8 +35,29 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isLoginRoute = request.nextUrl.pathname.startsWith("/login");
+  // Entrada do visitante de coworking: sem sessão ainda, o link/token é a
+  // credencial — a própria rota autentica automaticamente em seguida.
+  const isCoworkingEntry = request.nextUrl.pathname.startsWith(
+    "/coworking/entrar/"
+  );
+  // Ficha de inscrição de curso: o lead preenche o formulário sem nunca
+  // logar — não tem sessão nenhuma, só o token do link.
+  const isCourseSignup = request.nextUrl.pathname.startsWith(
+    "/cursos/inscricao/"
+  );
+  // Assinatura de contrato de curso: idem — o aluno acessa só pelo token do
+  // link, sem sessão.
+  const isCourseContract = request.nextUrl.pathname.startsWith(
+    "/cursos/contrato/"
+  );
 
-  if (!user && !isLoginRoute) {
+  if (
+    !user &&
+    !isLoginRoute &&
+    !isCoworkingEntry &&
+    !isCourseSignup &&
+    !isCourseContract
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

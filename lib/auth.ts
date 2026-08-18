@@ -30,6 +30,11 @@ export async function requireProfile() {
   if (!result || !result.profile.active) {
     redirect("/login");
   }
+  // Visitantes (coworking) têm sua própria área mínima e nunca devem cair
+  // nas telas normais do estúdio.
+  if (result.profile.role === "visitante") {
+    redirect("/coworking/agenda");
+  }
   return result;
 }
 
@@ -39,4 +44,24 @@ export async function requireAdmin() {
     redirect("/");
   }
   return result;
+}
+
+export async function requireAdminOrChefePiercing() {
+  const result = await requireProfile();
+  if (result.profile.role !== "admin" && result.profile.role !== "chefe_piercing") {
+    redirect("/");
+  }
+  return result;
+}
+
+// Chefe de Piercing não tem acesso à agenda/mapa/criação de agendamentos —
+// só a Colaboradores (piercer), Estoque (piercing) e Relatórios. Chame isto
+// no topo de qualquer tela de agenda para mandá-lo pro lugar certo.
+export async function blockChefePiercing(
+  profile: Pick<Profile, "role">,
+  redirectTo = "/colaboradores"
+) {
+  if (profile.role === "chefe_piercing") {
+    redirect(redirectTo);
+  }
 }

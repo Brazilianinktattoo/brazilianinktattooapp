@@ -33,7 +33,7 @@ export default async function MacasPage() {
             <div className="overflow-x-auto rounded-xl border border-neutral-800">
               <table className="w-full min-w-[360px] text-left text-sm">
                 <thead>
-                  <tr className="border-b border-neutral-800 text-neutral-500">
+                  <tr className="border-b border-gold-soft/20 text-neutral-500">
                     <th className="py-3 pl-4 pr-4 font-medium">Nome</th>
                     <th className="py-3 pr-4 font-medium">Status</th>
                   </tr>

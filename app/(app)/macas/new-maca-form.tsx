@@ -29,7 +29,7 @@ export function NewMacaForm({ units }: { units: Unit[] }) {
           name="unit_id"
           required
           defaultValue=""
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-red-500"
+          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
         >
           <option value="" disabled>
             Selecione...
@@ -50,13 +50,13 @@ export function NewMacaForm({ units }: { units: Unit[] }) {
           name="label"
           required
           placeholder="Ex: Maca 4"
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-red-500"
+          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
         />
       </div>
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-red-600 px-4 py-2 font-medium text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+        className="rounded-lg bg-gradient-to-b from-gold-strong to-gold shadow-[0_4px_14px_-4px_rgba(201,169,97,0.45)] px-4 py-2 font-medium text-neutral-950 transition hover:to-copper disabled:cursor-not-allowed disabled:opacity-60"
       >
         {pending ? "Criando..." : "Adicionar"}
       </button>

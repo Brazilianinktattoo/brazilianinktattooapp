@@ -17,7 +17,14 @@ export function ProductRow({ product }: { product: Product }) {
     <tr className="border-b border-neutral-800">
       <td className="py-3 pl-4 pr-4">
         <div className="text-neutral-100">{product.name}</div>
-        <div className="text-xs text-neutral-500">{product.code}</div>
+        <div className="text-xs text-neutral-500">
+          {product.code}
+          {product.category === "piercing" && (
+            <span className="ml-2 rounded-full bg-purple-500/15 px-2 py-0.5 text-purple-300">
+              Piercing
+            </span>
+          )}
+        </div>
       </td>
       <td className="py-3 pr-4">
         <span className={low ? "font-medium text-red-400" : "text-neutral-200"}>
@@ -44,7 +51,7 @@ export function ProductRow({ product }: { product: Product }) {
               );
             }
           }}
-          className="w-24 rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 outline-none focus:border-red-500 disabled:opacity-60"
+          className="w-24 rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 outline-none focus:border-gold disabled:opacity-60"
         />
       </td>
       <td className="py-3 pr-4">

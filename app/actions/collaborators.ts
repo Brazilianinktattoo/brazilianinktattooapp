@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireAdminOrChefePiercing } from "@/lib/auth";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { UserRole } from "@/lib/types/database";
 
@@ -10,18 +10,34 @@ export type CreateCollaboratorState = {
   success?: boolean;
 };
 
-const ROLES: UserRole[] = ["admin", "tatuador", "piercer"];
+const ROLES: UserRole[] = ["admin", "tatuador", "piercer", "chefe_piercing"];
+
+// Chefe de Piercing só mexe em colaboradores que já são (ou vão ser) body
+// piercer. Os server actions abaixo usam a service_role (bypassa RLS), então
+// essa checagem tem que existir aqui — não dá pra confiar só na policy.
+async function getTargetRole(id: string): Promise<UserRole | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", id)
+    .maybeSingle();
+  return data?.role ?? null;
+}
 
 export async function createCollaborator(
   _prevState: CreateCollaboratorState,
   formData: FormData
 ): Promise<CreateCollaboratorState> {
-  await requireAdmin();
+  const { profile } = await requireAdminOrChefePiercing();
+  const isChefePiercing = profile.role === "chefe_piercing";
 
   const full_name = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const role = String(formData.get("role") ?? "") as UserRole;
+  const role = isChefePiercing
+    ? "piercer"
+    : (String(formData.get("role") ?? "") as UserRole);
 
   if (!full_name || !email || !password) {
     return { error: "Preencha nome, e-mail e senha." };
@@ -54,6 +70,7 @@ export async function createCollaborator(
 }
 
 export async function updateCollaboratorRole(id: string, role: UserRole) {
+  // só admin promove/rebaixa colaborador — chefe_piercing nunca muda papel
   await requireAdmin();
   if (!ROLES.includes(role)) return;
 
@@ -63,8 +80,11 @@ export async function updateCollaboratorRole(id: string, role: UserRole) {
 }
 
 export async function updateCollaboratorName(id: string, full_name: string) {
-  await requireAdmin();
+  const { profile } = await requireAdminOrChefePiercing();
   if (!full_name.trim()) return;
+  if (profile.role === "chefe_piercing") {
+    if ((await getTargetRole(id)) !== "piercer") return;
+  }
 
   const supabase = await createClient();
   await supabase
@@ -84,7 +104,12 @@ export async function updateCollaboratorEmail(
   _prevState: UpdateEmailState,
   formData: FormData
 ): Promise<UpdateEmailState> {
-  await requireAdmin();
+  const { profile } = await requireAdminOrChefePiercing();
+  if (profile.role === "chefe_piercing") {
+    if ((await getTargetRole(id)) !== "piercer") {
+      return { error: "Sem permissão para editar esse colaborador." };
+    }
+  }
 
   const email = String(formData.get("email") ?? "").trim();
   if (!email) return { error: "Informe um e-mail." };
@@ -104,10 +129,13 @@ export async function updateCollaboratorEmail(
 }
 
 export async function setCollaboratorActive(id: string, active: boolean) {
-  const { user } = await requireAdmin();
+  const { user, profile } = await requireAdminOrChefePiercing();
   if (id === user.id && !active) {
-    // don't let an admin lock themselves out
+    // don't let an admin/chefe lock themselves out
     return;
+  }
+  if (profile.role === "chefe_piercing") {
+    if ((await getTargetRole(id)) !== "piercer") return;
   }
 
   const supabase = await createClient();
@@ -124,13 +152,18 @@ export async function resetCollaboratorPassword(
   _prevState: ResetPasswordState,
   formData: FormData
 ): Promise<ResetPasswordState> {
-  await requireAdmin();
+  const { profile } = await requireAdminOrChefePiercing();
 
   const id = String(formData.get("id") ?? "");
   const password = String(formData.get("password") ?? "");
 
   if (!id || password.length < 6) {
     return { error: "A nova senha precisa ter pelo menos 6 caracteres." };
+  }
+  if (profile.role === "chefe_piercing") {
+    if ((await getTargetRole(id)) !== "piercer") {
+      return { error: "Sem permissão para editar esse colaborador." };
+    }
   }
 
   const admin = createAdminClient();
