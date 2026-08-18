@@ -30,6 +30,12 @@ export async function updateSession(request: NextRequest) {
   // IMPORTANT: getUser() revalidates the token against Supabase Auth.
   // Do not swap for getSession() here — that only reads the (possibly
   // stale) cookie and would let an expired session through.
+  // Rotas de API cuidam da própria autorização (token secreto, RLS via
+  // service role etc.) — não fazem sentido redirecionadas pro /login.
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    return response;
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
