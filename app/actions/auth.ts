@@ -25,7 +25,11 @@ export async function login(
   });
 
   if (error || !data.user) {
-    return { error: "E-mail ou senha inválidos." };
+    // DEBUG TEMPORÁRIO — remover depois de descobrir a causa do login falhando em produção.
+    const urlSample = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "undefined").slice(0, 40);
+    return {
+      error: `E-mail ou senha inválidos. [DEBUG: ${error?.message ?? "sem user"} | status=${error?.status ?? "-"} | url=${urlSample}]`,
+    };
   }
 
   const { data: profile } = await supabase
