@@ -26,13 +26,13 @@ on conflict (trigger) do nothing;
 -- Textos padrão de pós-tattoo, diferenciados por estágio da cicatrização
 -- (o admin pode personalizar cada um depois pela tela de Mensagens).
 update public.message_templates set body =
-$body$Olá! Sua tattoo está fresquinha 💛 Nas próximas horas, alguns cuidados são essenciais:
+$body$Olá! Sua tattoo está fresquinha 💛 Antes de mais nada, obrigado por nos deixar fazer parte da sua história! Nas próximas horas, alguns cuidados são essenciais:
 
 🩹 O filme protetor deve ficar na pele por até 4 dias — se acumular muito líquido embaixo, remova com água morna antes disso
 🚫 Evite tocar, coçar ou deixar a região em contato com roupas apertadas
 🚿 Ao tomar banho, evite jato de água direto na tattoo
 
-Qualquer dúvida, fale com seu tatuador(a) ou com a gente!
+⚠️ Se notar muito calor ou dor no local, vermelhidão excessiva ou muito inchaço, fale com seu tatuador(a) ou com a gente — estamos aqui pra te ajudar no que for preciso.
 
 Um abraço da família BIT! 🖤$body$
 where trigger = 'pos_tattoo_1';
