@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireProfile } from "@/lib/auth";
+import { blockChefePiercing, requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 import { dayBounds, formatDateLabel, shiftDate, todayParam } from "@/lib/date";
@@ -9,11 +9,14 @@ const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
   tatuador: "Tatuador(a)",
   piercer: "Body Piercer",
+  chefe_piercing: "Chefe de Piercing",
+  visitante: "Visitante",
 };
 
 export default async function AgendaPage(props: PageProps<"/">) {
   const searchParams = await props.searchParams;
   const { user, profile } = await requireProfile();
+  await blockChefePiercing(profile);
 
   const dateParam =
     typeof searchParams.date === "string" ? searchParams.date : todayParam();
@@ -46,25 +49,25 @@ export default async function AgendaPage(props: PageProps<"/">) {
         <div className="flex items-center gap-2">
           <Link
             href={`/?date=${shiftDate(dateParam, -1)}`}
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-neutral-500 hover:text-white"
+            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             ← Anterior
           </Link>
           <Link
             href={`/?date=${todayParam()}`}
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-neutral-500 hover:text-white"
+            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Hoje
           </Link>
           <Link
             href={`/?date=${shiftDate(dateParam, 1)}`}
-            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-neutral-500 hover:text-white"
+            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Próximo →
           </Link>
           <Link
             href={`/agendamentos/novo?date=${dateParam}`}
-            className="ml-2 rounded-lg bg-red-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-red-500"
+            className="ml-2 rounded-lg bg-gradient-to-b from-gold-strong to-gold shadow-[0_4px_14px_-4px_rgba(201,169,97,0.45)] px-4 py-1.5 text-sm font-medium text-neutral-950 hover:to-copper"
           >
             + Novo agendamento
           </Link>
@@ -74,7 +77,7 @@ export default async function AgendaPage(props: PageProps<"/">) {
       <div className="overflow-x-auto rounded-xl border border-neutral-800">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead>
-            <tr className="border-b border-neutral-800 text-neutral-500">
+            <tr className="border-b border-gold-soft/20 text-neutral-500">
               <th className="py-3 pl-4 pr-4 font-medium">Horário</th>
               <th className="py-3 pr-4 font-medium">Unidade</th>
               <th className="py-3 pr-4 font-medium">Colaborador</th>

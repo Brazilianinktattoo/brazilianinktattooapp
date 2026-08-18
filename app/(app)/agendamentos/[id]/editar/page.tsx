@@ -30,6 +30,7 @@ export default async function EditarAgendamentoPage(
         .from("profiles")
         .select("id, full_name, role")
         .eq("active", true)
+        .in("role", ["admin", "tatuador", "piercer"])
         .order("full_name")
         .returns<Pick<Profile, "id" | "full_name" | "role">[]>(),
       supabase

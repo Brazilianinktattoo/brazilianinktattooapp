@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { normalizePhone } from "@/lib/phone";
 
 export type AppointmentFormState = {
   error?: string;
@@ -22,10 +23,58 @@ function friendlyDbError(message: string): string {
   if (message.includes("nao utiliza maca")) {
     return "Body piercer não utiliza maca — deixe o campo em branco.";
   }
+  if (message.includes("precisa escolher uma maca")) {
+    return "Tatuador precisa escolher uma maca.";
+  }
   if (message.includes("nao pertence a unidade")) {
     return "Essa maca não pertence à unidade selecionada.";
   }
+  if (message.includes("Acesso de coworking expirado")) {
+    return "Seu acesso de coworking expirou ou não foi encontrado.";
+  }
+  if (message.includes("periodo reservado")) {
+    return "Esse horário está fora do período reservado para o seu acesso.";
+  }
   return "Não foi possível salvar o agendamento. Confira os dados e tente de novo.";
+}
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+// Mantém um cadastro de cliente por telefone (dedupe natural) sem mudar os
+// campos client_name/client_phone já existentes no agendamento — só soma um
+// vínculo estável, usado nos relatórios e nas automações de mensagem.
+async function upsertClientForAppointment(
+  supabase: SupabaseServerClient,
+  name: string,
+  phone: string,
+  birthday: string
+): Promise<string | null> {
+  const normalizedPhone = normalizePhone(phone);
+  if (!normalizedPhone) return null;
+
+  const { data: existing } = await supabase
+    .from("clients")
+    .select("id, full_name, birthday")
+    .eq("phone", normalizedPhone)
+    .maybeSingle();
+
+  if (existing) {
+    const patch: { full_name?: string; birthday?: string } = {};
+    if (name && name !== existing.full_name) patch.full_name = name;
+    if (birthday && !existing.birthday) patch.birthday = birthday;
+    if (Object.keys(patch).length > 0) {
+      await supabase.from("clients").update(patch).eq("id", existing.id);
+    }
+    return existing.id;
+  }
+
+  const { data: created } = await supabase
+    .from("clients")
+    .insert({ full_name: name, phone: normalizedPhone, birthday: birthday || null })
+    .select("id")
+    .single();
+
+  return created?.id ?? null;
 }
 
 function readAppointmentForm(formData: FormData) {
@@ -34,6 +83,8 @@ function readAppointmentForm(formData: FormData) {
   const maca_id = String(formData.get("maca_id") ?? "") || null;
   const client_name = String(formData.get("client_name") ?? "").trim();
   const client_phone = String(formData.get("client_phone") ?? "").trim();
+  const client_birthday = String(formData.get("client_birthday") ?? "").trim();
+  const client_is_own = formData.get("client_is_own") === "on";
   const notes = String(formData.get("notes") ?? "").trim();
   const starts_at_raw = String(formData.get("starts_at") ?? "");
   const ends_at_raw = String(formData.get("ends_at") ?? "");
@@ -78,12 +129,14 @@ function readAppointmentForm(formData: FormData) {
       maca_id,
       client_name,
       client_phone,
+      client_is_own,
       notes,
       starts_at: starts_at.toISOString(),
       ends_at: ends_at.toISOString(),
       deposit_amount,
       deposit_status: deposit_status as "pago" | "pendente",
     },
+    client_birthday,
   } as const;
 }
 
@@ -101,7 +154,15 @@ export async function createAppointment(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("appointments").insert(parsed.data);
+  const client_id = await upsertClientForAppointment(
+    supabase,
+    parsed.data.client_name,
+    parsed.data.client_phone,
+    parsed.client_birthday
+  );
+  const { error } = await supabase
+    .from("appointments")
+    .insert({ ...parsed.data, client_id });
 
   if (error) return { error: friendlyDbError(error.message) };
 
@@ -124,9 +185,15 @@ export async function updateAppointment(
   }
 
   const supabase = await createClient();
+  const client_id = await upsertClientForAppointment(
+    supabase,
+    parsed.data.client_name,
+    parsed.data.client_phone,
+    parsed.client_birthday
+  );
   const { error } = await supabase
     .from("appointments")
-    .update(parsed.data)
+    .update({ ...parsed.data, client_id })
     .eq("id", id);
 
   if (error) return { error: friendlyDbError(error.message) };

@@ -100,6 +100,12 @@ export function AppointmentRow({
               >
                 Editar
               </Link>
+              <Link
+                href={`/agendamentos/${appointment.id}/anamnese`}
+                className="text-neutral-400 hover:text-white"
+              >
+                Anamnese
+              </Link>
               <form action={openComanda}>
                 <input type="hidden" name="appointment_id" value={appointment.id} />
                 <button
