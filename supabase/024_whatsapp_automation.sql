@@ -10,12 +10,13 @@
 -- --- 1) gatilhos de pós-tattoo: 5 -> 1 + 7 -------------------------------
 
 alter table public.message_templates drop constraint if exists message_templates_trigger_check;
+
+delete from public.message_templates where trigger = 'pos_tattoo_5';
+
 alter table public.message_templates add constraint message_templates_trigger_check
   check (trigger in (
     'aniversario', 'pos_tattoo_1', 'pos_tattoo_7', 'pos_tattoo_15', 'pos_tattoo_30', 'pos_tattoo_60'
   ));
-
-delete from public.message_templates where trigger = 'pos_tattoo_5';
 
 insert into public.message_templates (trigger, body, active) values
   ('pos_tattoo_1', '', false),
