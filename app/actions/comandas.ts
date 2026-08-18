@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { feeRatePercentFor, computeNet } from "@/lib/fees";
+import type { CardFeeRate, PaymentMethod } from "@/lib/types/database";
 
 export async function openComanda(formData: FormData) {
   const { user, profile } = await requireProfile();
@@ -41,15 +43,87 @@ export async function openComanda(formData: FormData) {
   redirect(`/comandas/${comanda.id}`);
 }
 
-export async function closeComanda(comandaId: string) {
+export type CloseComandaState = {
+  error?: string;
+};
+
+const PAYMENT_METHODS = ["credito", "debito", "pix", "dinheiro", "paypal"];
+
+export async function closeComanda(
+  comandaId: string,
+  _prevState: CloseComandaState,
+  formData: FormData
+): Promise<CloseComandaState> {
   await requireProfile();
   const supabase = await createClient();
-  await supabase
+
+  const payment_method = String(formData.get("payment_method") ?? "") as PaymentMethod;
+  if (!PAYMENT_METHODS.includes(payment_method)) {
+    return { error: "Selecione a forma de pagamento." };
+  }
+
+  const installmentsRaw = String(formData.get("installments") ?? "1");
+  const installments = payment_method === "credito" ? Number(installmentsRaw) : 1;
+  if (!Number.isInteger(installments) || installments < 1 || installments > 18) {
+    return { error: "Parcelamento inválido." };
+  }
+
+  const [{ data: services }, { data: productLines }, { data: jewelryLines }] =
+    await Promise.all([
+      supabase.from("comanda_services").select("price").eq("comanda_id", comandaId),
+      supabase
+        .from("comanda_products")
+        .select("quantity, unit_price")
+        .eq("comanda_id", comandaId),
+      supabase.from("comanda_jewelry").select("value").eq("comanda_id", comandaId),
+    ]);
+
+  const gross =
+    (services ?? []).reduce((s, i) => s + i.price, 0) +
+    (productLines ?? []).reduce((s, i) => s + i.quantity * i.unit_price, 0) +
+    (jewelryLines ?? []).reduce((s, i) => s + i.value, 0);
+
+  let feeRatePercent = 0;
+  if (payment_method === "credito" || payment_method === "debito") {
+    const { data: rates } = await supabase
+      .from("card_fee_rates")
+      .select("*")
+      .eq("method", payment_method)
+      .eq("installments", installments)
+      .lte("effective_from", new Date().toISOString())
+      .returns<CardFeeRate[]>();
+
+    const rate = feeRatePercentFor(rates ?? [], payment_method, installments);
+    if (rate === null) {
+      return {
+        error:
+          payment_method === "credito"
+            ? `Taxa não cadastrada para crédito ${installments}x. Cadastre em Taxas antes de fechar.`
+            : "Taxa de débito não cadastrada. Cadastre em Taxas antes de fechar.",
+      };
+    }
+    feeRatePercent = rate;
+  }
+
+  const netAmount = computeNet(gross, feeRatePercent);
+
+  const { error } = await supabase
     .from("comandas")
-    .update({ status: "fechada" })
+    .update({
+      status: "fechada",
+      payment_method,
+      installments,
+      fee_rate_percent: feeRatePercent,
+      gross_amount: gross,
+      net_amount: netAmount,
+    })
     .eq("id", comandaId);
+
+  if (error) return { error: "Não foi possível fechar a comanda." };
+
   revalidatePath(`/comandas/${comandaId}`);
   revalidatePath("/");
+  return {};
 }
 
 export type ComandaServiceState = {
@@ -65,6 +139,7 @@ export async function addService(
 
   const description = String(formData.get("description") ?? "").trim();
   const price_raw = String(formData.get("price") ?? "0").replace(",", ".");
+  const service_id = String(formData.get("service_id") ?? "") || null;
 
   if (!description) return { error: "Descreva o serviço." };
 
@@ -74,7 +149,7 @@ export async function addService(
   const supabase = await createClient();
   const { error } = await supabase
     .from("comanda_services")
-    .insert({ comanda_id: comandaId, description, price });
+    .insert({ comanda_id: comandaId, service_id, description, price });
 
   if (error) {
     return {
@@ -151,5 +226,58 @@ export async function removeProduct(comandaId: string, lineId: string) {
   await requireProfile();
   const supabase = await createClient();
   await supabase.from("comanda_products").delete().eq("id", lineId);
+  revalidatePath(`/comandas/${comandaId}`);
+}
+
+export type ComandaJewelryState = {
+  error?: string;
+};
+
+export async function addJewelry(
+  comandaId: string,
+  _prevState: ComandaJewelryState,
+  formData: FormData
+): Promise<ComandaJewelryState> {
+  await requireProfile();
+
+  const jewelry_catalog_id = String(formData.get("jewelry_catalog_id") ?? "") || null;
+  const jewelry_name = String(formData.get("jewelry_name") ?? "").trim();
+  const operationRaw = String(formData.get("operation") ?? "");
+  const value_raw = String(formData.get("value") ?? "0").replace(",", ".");
+
+  if (!jewelry_name) return { error: "Informe o tipo da jóia." };
+  if (!["aplicada", "trocada", "vendida"].includes(operationRaw)) {
+    return { error: "Selecione a operação." };
+  }
+  const operation = operationRaw as "aplicada" | "trocada" | "vendida";
+
+  const value = Number(value_raw);
+  if (Number.isNaN(value) || value < 0) return { error: "Valor inválido." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("comanda_jewelry").insert({
+    comanda_id: comandaId,
+    jewelry_catalog_id,
+    jewelry_name,
+    operation,
+    value,
+  });
+
+  if (error) {
+    return {
+      error: error.message.includes("fechada")
+        ? "Comanda fechada, não é possível editar."
+        : "Não foi possível adicionar a jóia.",
+    };
+  }
+
+  revalidatePath(`/comandas/${comandaId}`);
+  return {};
+}
+
+export async function removeJewelry(comandaId: string, lineId: string) {
+  await requireProfile();
+  const supabase = await createClient();
+  await supabase.from("comanda_jewelry").delete().eq("id", lineId);
   revalidatePath(`/comandas/${comandaId}`);
 }
