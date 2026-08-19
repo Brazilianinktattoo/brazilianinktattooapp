@@ -306,6 +306,35 @@ export type AnamneseFormWithAppointment = AnamneseForm & {
   appointment: Pick<Appointment, "id" | "client_name" | "starts_at"> | null;
 };
 
+export type StudentAnamneseForm = {
+  id: string;
+  student_name: string;
+  procedure_location: string;
+  procedure_type: string;
+  notes: string;
+  value: number;
+  full_name: string;
+  rg: string;
+  cpf: string;
+  birth_date: string | null;
+  address: string;
+  cep: string;
+  city: string;
+  email: string;
+  whatsapp: string;
+  client_origin: string;
+  blood_type: string;
+  health_declaration: HealthDeclaration;
+  photo_authorization: boolean;
+  file_path: string | null;
+  sign_token: string;
+  signed_at: string | null;
+  signer_name: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type MinorAuthorizationForm = {
   id: string;
   anamnese_form_id: string;
@@ -610,6 +639,12 @@ export type Database = {
         Row: AnamneseForm;
         Insert: Partial<AnamneseForm> & { appointment_id: string };
         Update: Partial<AnamneseForm>;
+        Relationships: [];
+      };
+      student_anamnese_forms: {
+        Row: StudentAnamneseForm;
+        Insert: Partial<StudentAnamneseForm>;
+        Update: Partial<StudentAnamneseForm>;
         Relationships: [];
       };
       minor_authorization_forms: {

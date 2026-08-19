@@ -56,13 +56,26 @@ export async function updateSession(request: NextRequest) {
   const isCourseContract = request.nextUrl.pathname.startsWith(
     "/cursos/contrato/"
   );
+  // Fichas de anamnese, autorização de menor e recibo de curso — todas
+  // assinadas por quem NUNCA logou no sistema, só pelo token do link.
+  const PUBLIC_TOKEN_PREFIXES = [
+    "/anamnese/",
+    "/anamnese-coworking/",
+    "/anamnese-piercing/",
+    "/autorizacao-menor/",
+    "/recibo/",
+  ];
+  const isPublicTokenRoute = PUBLIC_TOKEN_PREFIXES.some((prefix) =>
+    request.nextUrl.pathname.startsWith(prefix)
+  );
 
   if (
     !user &&
     !isLoginRoute &&
     !isCoworkingEntry &&
     !isCourseSignup &&
-    !isCourseContract
+    !isCourseContract &&
+    !isPublicTokenRoute
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

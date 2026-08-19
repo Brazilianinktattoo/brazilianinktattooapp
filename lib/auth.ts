@@ -46,6 +46,14 @@ export async function requireAdmin() {
   return result;
 }
 
+export async function requireAdminOrTatuador() {
+  const result = await requireProfile();
+  if (result.profile.role !== "admin" && result.profile.role !== "tatuador") {
+    redirect("/");
+  }
+  return result;
+}
+
 export async function requireAdminOrChefePiercing() {
   const result = await requireProfile();
   if (result.profile.role !== "admin" && result.profile.role !== "chefe_piercing") {
