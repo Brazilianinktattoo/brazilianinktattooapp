@@ -204,6 +204,15 @@ export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
       {profile.role === "admin" && (
         <>
           <Link
+            href="/relatorios/graficos"
+            className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 transition hover:border-neutral-600"
+          >
+            <h2 className="font-semibold text-white">Gráficos Financeiros →</h2>
+            <p className="mt-1 text-sm text-neutral-400">
+              Receita, custo e evolução mês a mês, num relance.
+            </p>
+          </Link>
+          <Link
             href="/relatorios/fechamento"
             className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 transition hover:border-neutral-600"
           >
