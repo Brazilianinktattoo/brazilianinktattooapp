@@ -103,6 +103,9 @@ export default async function AppLayout({
                   <Link href="/mensagens" className={NAV_LINK_CLASS}>
                     Mensagens
                   </Link>
+                  <Link href="/contas-fixas" className={NAV_LINK_CLASS}>
+                    Contas Fixas
+                  </Link>
                 </>
               )}
               {(profile.role === "admin" ||
