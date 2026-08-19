@@ -1,6 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import { getFormText } from "@/lib/form-texts";
 import type { AnamneseForm } from "@/lib/types/database";
 import { AnamneseForm as AnamneseFormComponent } from "./anamnese-form";
+
+const DEFAULT_CONSENT_TEXT =
+  "Declaro estar ciente de que o procedimento envolve o rompimento da barreira natural da pele, com riscos inerentes de dor, edema, hematoma, sangramento, reação alérgica e infecção. Fui informado(a) sobre os cuidados pós-procedimento necessários e sobre a dificuldade do processo de remoção, quando aplicável. Declaro que as informações de saúde acima são verdadeiras e completas.";
 
 function Message({ title, body }: { title: string; body: string }) {
   return (
@@ -60,6 +64,7 @@ export default async function AnamnesePage(
           token={token}
           defaultName={form.appointment?.client_name ?? ""}
           defaultPhone={form.appointment?.client_phone ?? ""}
+          consentText={await getFormText("anamnese_bit_consent", DEFAULT_CONSENT_TEXT)}
         />
       )}
     </div>

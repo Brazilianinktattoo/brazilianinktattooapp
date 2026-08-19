@@ -95,10 +95,12 @@ export function AnamneseForm({
   token,
   defaultName,
   defaultPhone,
+  consentText,
 }: {
   token: string;
   defaultName: string;
   defaultPhone: string;
+  consentText: string;
 }) {
   const [state, formAction, pending] = useActionState(
     submitAnamneseSignature.bind(null, token),
@@ -273,14 +275,7 @@ export function AnamneseForm({
 
       <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
         <h2 className="font-semibold text-white">4. Consentimento e origem</h2>
-        <p className="text-sm text-neutral-400">
-          Declaro estar ciente de que o procedimento envolve o rompimento da
-          barreira natural da pele, com riscos inerentes de dor, edema,
-          hematoma, sangramento, reação alérgica e infecção. Fui informado(a)
-          sobre os cuidados pós-procedimento necessários e sobre a
-          dificuldade do processo de remoção, quando aplicável. Declaro que
-          as informações de saúde acima são verdadeiras e completas.
-        </p>
+        <p className="text-sm text-neutral-400">{consentText}</p>
         <div className="flex flex-col gap-2">
           {ORIGIN_OPTIONS.map((opt) => (
             <label

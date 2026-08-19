@@ -100,6 +100,9 @@ export default async function AppLayout({
                   <Link href="/clientes" className={NAV_LINK_CLASS}>
                     Clientes
                   </Link>
+                  <Link href="/fichas" className={NAV_LINK_CLASS}>
+                    Fichas
+                  </Link>
                   <Link href="/mensagens" className={NAV_LINK_CLASS}>
                     Mensagens
                   </Link>

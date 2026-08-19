@@ -76,9 +76,11 @@ function HealthQuestion({ questionKey, label }: { questionKey: string; label: st
 export function MinorAuthForm({
   token,
   minorName,
+  consentText,
 }: {
   token: string;
   minorName: string;
+  consentText: string;
 }) {
   const [state, formAction, pending] = useActionState(
     submitMinorAuthorizationSignature.bind(null, token),
@@ -132,10 +134,7 @@ export function MinorAuthForm({
       </div>
 
       <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
-        <p className="text-sm text-neutral-400">
-          Declaro serem verdadeiras as afirmações acima e assumo total
-          responsabilidade por qualquer omissão ou erro nas mesmas.
-        </p>
+        <p className="text-sm text-neutral-400">{consentText}</p>
         <Field id="signer_name" label="Nome completo do responsável (confirme como assinatura)" required />
         <label className="flex items-start gap-2 text-sm text-neutral-300">
           <input type="checkbox" name="agree" required className="mt-1" />

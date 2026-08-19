@@ -211,6 +211,13 @@ export type ServiceSubcategory =
   | "joia_titanio"
   | "joia_aco";
 
+export type FormText = {
+  key: string;
+  label: string;
+  body: string;
+  updated_at: string;
+};
+
 export type FixedBill = {
   id: string;
   name: string;
@@ -584,6 +591,12 @@ export type Database = {
           operation: JewelryOperation;
         };
         Update: Partial<ComandaJewelry>;
+        Relationships: [];
+      };
+      form_texts: {
+        Row: FormText;
+        Insert: Partial<FormText> & { key: string; label: string };
+        Update: Partial<FormText>;
         Relationships: [];
       };
       fixed_bills: {

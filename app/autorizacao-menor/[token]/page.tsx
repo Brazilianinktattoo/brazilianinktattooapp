@@ -1,6 +1,10 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import { getFormText } from "@/lib/form-texts";
 import type { MinorAuthorizationForm } from "@/lib/types/database";
 import { MinorAuthForm } from "./minor-auth-form";
+
+const DEFAULT_CONSENT_TEXT =
+  "Declaro serem verdadeiras as afirmações acima e assumo total responsabilidade por qualquer omissão ou erro nas mesmas.";
 
 function Message({ title, body }: { title: string; body: string }) {
   return (
@@ -54,7 +58,14 @@ export default async function MinorAuthPage(
           .
         </div>
       ) : (
-        <MinorAuthForm token={token} minorName={form.minor_name} />
+        <MinorAuthForm
+          token={token}
+          minorName={form.minor_name}
+          consentText={await getFormText(
+            "minor_authorization_consent",
+            DEFAULT_CONSENT_TEXT
+          )}
+        />
       )}
     </div>
   );
