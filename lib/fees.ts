@@ -37,8 +37,11 @@ export function feeRatePercentFor(
   return rate ? rate.rate_percent : null;
 }
 
-export function computeNet(gross: number, ratePercent: number): number {
-  return Math.round(gross * (1 - ratePercent / 100) * 100) / 100;
+// A taxa da operadora é ACRESCIDA ao valor do serviço — o cliente paga o
+// valor do serviço + a taxa (o estúdio recebe o valor cheio do serviço,
+// sem descontar a taxa; é o cliente quem cobre o custo da maquininha).
+export function computeChargedAmount(gross: number, ratePercent: number): number {
+  return Math.round(gross * (1 + ratePercent / 100) * 100) / 100;
 }
 
 export const PAYMENT_METHOD_LABEL: Record<PaymentMethod, string> = {

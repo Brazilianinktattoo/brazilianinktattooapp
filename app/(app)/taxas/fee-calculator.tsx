@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { CardFeeRate, PaymentMethod } from "@/lib/types/database";
-import { computeNet, INSTALLMENT_OPTIONS, PAYMENT_METHOD_LABEL } from "@/lib/fees";
+import { computeChargedAmount, INSTALLMENT_OPTIONS, PAYMENT_METHOD_LABEL } from "@/lib/fees";
 
 function money(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -30,12 +30,15 @@ export function FeeCalculator({
   }, [method, installments, debitoRate, creditoRates]);
 
   const hasValidGross = gross.trim() !== "" && !Number.isNaN(grossValue) && grossValue >= 0;
-  const net = hasValidGross && ratePercent !== null ? computeNet(grossValue, ratePercent) : null;
-  const feeAmount = net !== null ? Math.round((grossValue - net) * 100) / 100 : null;
+  const charged =
+    hasValidGross && ratePercent !== null
+      ? computeChargedAmount(grossValue, ratePercent)
+      : null;
+  const feeAmount = charged !== null ? Math.round((charged - grossValue) * 100) / 100 : null;
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
-      <h2 className="font-semibold text-white">Simulador de valor líquido</h2>
+      <h2 className="font-semibold text-white">Simulador de valor cobrado</h2>
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="gross" className="text-sm text-neutral-300">
@@ -100,13 +103,13 @@ export function FeeCalculator({
                 Taxa: <span className="text-neutral-100">{ratePercent}%</span>
               </span>
               <span>
-                Desconto:{" "}
+                Acréscimo da taxa:{" "}
                 <span className="text-neutral-100">{money(feeAmount ?? 0)}</span>
               </span>
               <span>
-                Valor líquido:{" "}
+                Valor cobrado do cliente:{" "}
                 <span className="text-lg font-semibold text-green-400">
-                  {money(net ?? 0)}
+                  {money(charged ?? 0)}
                 </span>
               </span>
             </div>

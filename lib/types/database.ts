@@ -159,7 +159,7 @@ export type Comanda = {
   installments: number;
   fee_rate_percent: number;
   gross_amount: number | null;
-  net_amount: number | null;
+  charged_amount: number | null;
   created_at: string;
   updated_at: string;
   closed_at: string | null;

@@ -188,9 +188,9 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
               <span className="text-neutral-100">{comanda.fee_rate_percent}%</span>
             </div>
             <div className="flex items-center justify-between">
-              <span>Valor líquido</span>
+              <span>Valor cobrado do cliente</span>
               <span className="font-semibold text-green-400">
-                {(comanda.net_amount ?? 0).toLocaleString("pt-BR", {
+                {(comanda.charged_amount ?? 0).toLocaleString("pt-BR", {
                   style: "currency",
                   currency: "BRL",
                 })}
@@ -199,7 +199,7 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
           </div>
         ) : (
           <p className="mt-1 text-xs text-neutral-500">
-            A forma de pagamento e o valor líquido são registrados no
+            A forma de pagamento e o valor cobrado são registrados no
             fechamento.
           </p>
         )}

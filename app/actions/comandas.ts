@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
-import { feeRatePercentFor, computeNet } from "@/lib/fees";
-import type { CardFeeRate, PaymentMethod } from "@/lib/types/database";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { feeRatePercentFor, computeChargedAmount, PAYMENT_METHOD_LABEL } from "@/lib/fees";
+import { commissionRate, resolveClientIsOwn } from "@/lib/commission";
+import { computeCommissionDeadline } from "@/lib/commission-deadline";
+import type { CardFeeRate, ClientOrigin, PaymentMethod } from "@/lib/types/database";
 
 export async function openComanda(formData: FormData) {
   const { user, profile } = await requireProfile();
@@ -105,7 +107,7 @@ export async function closeComanda(
     feeRatePercent = rate;
   }
 
-  const netAmount = computeNet(gross, feeRatePercent);
+  const chargedAmount = computeChargedAmount(gross, feeRatePercent);
 
   const { error } = await supabase
     .from("comandas")
@@ -115,15 +117,95 @@ export async function closeComanda(
       installments,
       fee_rate_percent: feeRatePercent,
       gross_amount: gross,
-      net_amount: netAmount,
+      charged_amount: chargedAmount,
     })
     .eq("id", comandaId);
 
   if (error) return { error: "Não foi possível fechar a comanda." };
 
+  const servicesGross = (services ?? []).reduce((s, i) => s + i.price, 0);
+  const paidAt = new Date();
+  await notifyAdminsOfCommissionDue(supabase, comandaId, servicesGross, payment_method, paidAt);
+
   revalidatePath(`/comandas/${comandaId}`);
   revalidatePath("/");
   return {};
+}
+
+type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+// Comissão só incide sobre serviços (tatuagem/piercing) — produtos e jóias
+// ficam de fora, mesma regra do relatório de serviços. Falha aqui não pode
+// derrubar o fechamento da comanda, então é só um aviso best-effort.
+async function notifyAdminsOfCommissionDue(
+  supabase: SupabaseServerClient,
+  comandaId: string,
+  servicesGross: number,
+  paymentMethod: PaymentMethod,
+  paidAt: Date
+) {
+  if (servicesGross <= 0) return;
+
+  try {
+    const { data: comandaInfo } = await supabase
+      .from("comandas")
+      .select(
+        "appointment_id, collaborator:profiles!comandas_collaborator_id_fkey(full_name), unit:units(name), appointment:appointments!comandas_appointment_id_fkey(client_is_own, anamnese_forms(client_origin, signed_at))"
+      )
+      .eq("id", comandaId)
+      .maybeSingle<{
+        appointment_id: string;
+        collaborator: { full_name: string } | null;
+        unit: { name: string } | null;
+        appointment: {
+          client_is_own: boolean;
+          anamnese_forms: { client_origin: ClientOrigin | null; signed_at: string | null } | null;
+        } | null;
+      }>();
+
+    if (!comandaInfo?.collaborator || !comandaInfo.unit) return;
+
+    const clientIsOwn = resolveClientIsOwn(
+      comandaInfo.appointment?.client_is_own ?? false,
+      comandaInfo.appointment?.anamnese_forms?.client_origin,
+      comandaInfo.appointment?.anamnese_forms?.signed_at
+    );
+    const rate = commissionRate(comandaInfo.unit.name, clientIsOwn);
+    const commissionAmount = Math.round(servicesGross * rate * 100) / 100;
+    const deadline = computeCommissionDeadline(paymentMethod, paidAt);
+
+    const amountLabel = commissionAmount.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+    const deadlineLabel = deadline.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "America/Sao_Paulo",
+    });
+    const message = `Comissão devida a ${comandaInfo.collaborator.full_name || "colaborador(a)"}: ${amountLabel} (${PAYMENT_METHOD_LABEL[paymentMethod]}). Prazo até ${deadlineLabel}.`;
+
+    const admin = createAdminClient();
+    const { data: admins } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("role", "admin")
+      .eq("active", true);
+
+    if (!admins || admins.length === 0) return;
+
+    await admin.from("notifications").insert(
+      admins.map((a) => ({
+        profile_id: a.id,
+        appointment_id: comandaInfo.appointment_id,
+        message,
+      }))
+    );
+  } catch {
+    // best-effort — não deixa um erro de notificação invalidar o fechamento
+  }
 }
 
 export type ComandaServiceState = {
