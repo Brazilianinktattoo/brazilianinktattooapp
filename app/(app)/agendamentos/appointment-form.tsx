@@ -35,6 +35,8 @@ export function AppointmentForm({
   macas,
   currentUser,
   defaultDate,
+  defaultClientName,
+  defaultClientPhone,
 }: {
   action: (
     state: AppointmentFormState,
@@ -46,6 +48,8 @@ export function AppointmentForm({
   macas: Maca[];
   currentUser: { id: string; role: UserRole };
   defaultDate?: string;
+  defaultClientName?: string;
+  defaultClientPhone?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const isAdmin = currentUser.role === "admin";
@@ -196,7 +200,7 @@ export function AppointmentForm({
           id="client_name"
           name="client_name"
           required
-          defaultValue={appointment?.client_name}
+          defaultValue={appointment?.client_name ?? defaultClientName}
           className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
         />
       </div>
@@ -209,7 +213,7 @@ export function AppointmentForm({
           <input
             id="client_phone"
             name="client_phone"
-            defaultValue={appointment?.client_phone}
+            defaultValue={appointment?.client_phone ?? defaultClientPhone}
             className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
           />
         </div>

@@ -11,6 +11,10 @@ export default async function NovoAgendamentoPage(props: PageProps<"/agendamento
 
   const defaultDate =
     typeof searchParams.date === "string" ? searchParams.date : todayParam();
+  const defaultClientName =
+    typeof searchParams.client_name === "string" ? searchParams.client_name : "";
+  const defaultClientPhone =
+    typeof searchParams.client_phone === "string" ? searchParams.client_phone : "";
 
   const supabase = await createClient();
   const [{ data: collaborators }, { data: units }, { data: macas }] =
@@ -46,6 +50,8 @@ export default async function NovoAgendamentoPage(props: PageProps<"/agendamento
         macas={macas ?? []}
         currentUser={{ id: user.id, role: profile.role }}
         defaultDate={defaultDate}
+        defaultClientName={defaultClientName}
+        defaultClientPhone={defaultClientPhone}
       />
     </div>
   );
