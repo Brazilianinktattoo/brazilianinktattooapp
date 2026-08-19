@@ -16,6 +16,10 @@ const ORIGIN_LABEL: Record<string, string> = {
 
 const initialState: GenerateAnamneseState = {};
 
+function formatMoney(value: number) {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 function formatDateTime(iso: string) {
   return new Date(iso).toLocaleString("pt-BR", {
     day: "2-digit",
@@ -80,6 +84,13 @@ export function AnamneseCard({
           <span className="text-neutral-100">
             {ORIGIN_LABEL[form.client_origin] ?? form.client_origin}
           </span>
+        </p>
+      )}
+      {form?.signed_at && (
+        <p className="mt-1 text-sm text-neutral-300">
+          Valor total: <span className="text-neutral-100">{formatMoney(form.total_amount)}</span>
+          {" · "}
+          Sinal: <span className="text-neutral-100">{formatMoney(form.deposit_amount)}</span>
         </p>
       )}
 

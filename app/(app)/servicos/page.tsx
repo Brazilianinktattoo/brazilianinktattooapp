@@ -9,7 +9,12 @@ export default async function ServicosPage() {
   const isChefePiercing = profile.role === "chefe_piercing";
   const supabase = await createClient();
 
-  let query = supabase.from("services").select("*").order("name");
+  let query = supabase
+    .from("services")
+    .select("*")
+    .order("category")
+    .order("subcategory")
+    .order("name");
   if (isChefePiercing) query = query.eq("category", "piercing");
   const { data: services } = await query.returns<Service[]>();
 

@@ -3,11 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { requireAdminOrChefePiercing } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { ServiceCategory } from "@/lib/types/database";
+import type { ServiceCategory, ServiceSubcategory } from "@/lib/types/database";
 
 export type ServiceFormState = {
   error?: string;
 };
+
+const PIERCING_SUBCATEGORIES: ServiceSubcategory[] = [
+  "so_perfuracao",
+  "perfuracao_joia",
+  "joia_titanio",
+  "joia_aco",
+];
 
 export async function createService(
   _prevState: ServiceFormState,
@@ -23,6 +30,11 @@ export async function createService(
     : String(formData.get("category") ?? "tatuagem") === "piercing"
       ? "piercing"
       : "tatuagem";
+  const subcategory_raw = String(formData.get("subcategory") ?? "") as ServiceSubcategory;
+  const subcategory: ServiceSubcategory =
+    category === "piercing" && PIERCING_SUBCATEGORIES.includes(subcategory_raw)
+      ? subcategory_raw
+      : "";
 
   if (!name) return { error: "Informe o nome do serviço." };
 
@@ -30,9 +42,17 @@ export async function createService(
   if (Number.isNaN(price) || price < 0) return { error: "Valor inválido." };
 
   const supabase = await createClient();
-  const { error } = await supabase.from("services").insert({ name, category, price });
+  const { error } = await supabase
+    .from("services")
+    .insert({ name, category, subcategory, price });
 
-  if (error) return { error: "Não foi possível criar o serviço." };
+  if (error) {
+    return {
+      error: error.message.includes("services_name_category_subcategory_key")
+        ? "Já existe um serviço com esse nome nessa categoria."
+        : "Não foi possível criar o serviço.",
+    };
+  }
 
   revalidatePath("/servicos");
   return {};

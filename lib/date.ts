@@ -43,3 +43,63 @@ export function shiftDate(dateParam: string, days: number) {
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
+// "YYYY-MM-DD" -> "YYYY-MM" / "YYYY" — usado pra achar o mês/ano corrente
+// ao entrar nas visões de agenda por mês/ano.
+export function monthOf(dateParam: string) {
+  return dateParam.slice(0, 7);
+}
+
+export function yearOf(dateParam: string) {
+  return dateParam.slice(0, 4);
+}
+
+export function monthBounds(monthParam: string) {
+  const start = new Date(`${monthParam}-01T00:00:00${STUDIO_OFFSET}`);
+  const end = new Date(`${monthParam}-01T00:00:00${STUDIO_OFFSET}`);
+  end.setUTCMonth(end.getUTCMonth() + 1);
+  return { start, end };
+}
+
+export function yearBounds(yearParam: string) {
+  const start = new Date(`${yearParam}-01-01T00:00:00${STUDIO_OFFSET}`);
+  const end = new Date(`${yearParam}-01-01T00:00:00${STUDIO_OFFSET}`);
+  end.setUTCFullYear(end.getUTCFullYear() + 1);
+  return { start, end };
+}
+
+export function shiftMonth(monthParam: string, months: number) {
+  const [y, m] = monthParam.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1 + months, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+export function shiftYear(yearParam: string, years: number) {
+  return String(Number(yearParam) + years);
+}
+
+export function formatMonthLabel(monthParam: string) {
+  return new Date(`${monthParam}-01T12:00:00Z`).toLocaleDateString("pt-BR", {
+    month: "long",
+    year: "numeric",
+    timeZone: STUDIO_TZ,
+  });
+}
+
+// Dias do grid do calendário mensal (semana começa domingo), completando
+// com dias dos meses vizinhos até fechar 6 semanas — puro cálculo de
+// calendário, não representa nenhum instante real (por isso UTC simples).
+export function monthGridDays(monthParam: string): string[] {
+  const [y, m] = monthParam.split("-").map(Number);
+  const firstOfMonth = new Date(Date.UTC(y, m - 1, 1));
+  const gridStart = new Date(firstOfMonth);
+  gridStart.setUTCDate(gridStart.getUTCDate() - firstOfMonth.getUTCDay());
+
+  const days: string[] = [];
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(gridStart);
+    d.setUTCDate(d.getUTCDate() + i);
+    days.push(d.toISOString().slice(0, 10));
+  }
+  return days;
+}

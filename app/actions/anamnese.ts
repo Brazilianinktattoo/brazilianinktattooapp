@@ -15,6 +15,10 @@ import type {
   ProcedureType,
 } from "@/lib/types/database";
 
+function formatCurrency(value: number) {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 function dateTimeLabel(d: Date) {
   const date = d.toLocaleDateString("pt-BR", { timeZone: STUDIO_TZ });
   const time = d.toLocaleTimeString("pt-BR", {
@@ -119,6 +123,8 @@ export async function submitAnamneseSignature(
   const procedure_type = String(formData.get("procedure_type") ?? "") as ProcedureType;
   const procedure_description = String(formData.get("procedure_description") ?? "").trim();
   const body_location = String(formData.get("body_location") ?? "").trim();
+  const total_amount_raw = String(formData.get("total_amount") ?? "").trim().replace(",", ".");
+  const deposit_amount_raw = String(formData.get("deposit_amount") ?? "").trim().replace(",", ".");
   const pregnantRaw = String(formData.get("pregnant") ?? "");
   const alcohol_24h = formData.get("alcohol_24h") === "sim";
   const client_origin = String(formData.get("client_origin") ?? "") as ClientOrigin;
@@ -126,9 +132,30 @@ export async function submitAnamneseSignature(
   const agree = formData.get("agree");
 
   if (!full_name) return { error: "Informe o nome completo." };
+  if (!birth_date) return { error: "Informe a data de nascimento." };
+  if (!cpf) return { error: "Informe o CPF." };
+  if (!rg) return { error: "Informe o RG." };
+  if (!address) return { error: "Informe o endereço completo." };
+  if (!cep) return { error: "Informe o CEP." };
+  if (!phone) return { error: "Informe o telefone." };
+  if (!email) return { error: "Informe o e-mail." };
   if (!["tatuagem", "piercing", "ambos"].includes(procedure_type)) {
     return { error: "Selecione o tipo de procedimento." };
   }
+  if (!procedure_description) {
+    return { error: "Descreva o procedimento (desenho/estilo ou jóia)." };
+  }
+  if (!body_location) return { error: "Informe a localização no corpo." };
+
+  const total_amount = Number(total_amount_raw);
+  if (total_amount_raw === "" || Number.isNaN(total_amount) || total_amount < 0) {
+    return { error: "Informe o valor total do procedimento." };
+  }
+  const deposit_amount = Number(deposit_amount_raw);
+  if (deposit_amount_raw === "" || Number.isNaN(deposit_amount) || deposit_amount < 0) {
+    return { error: "Informe o valor do sinal (0 se não houve sinal)." };
+  }
+
   if (!["nao", "sim", "nao_se_aplica"].includes(pregnantRaw)) {
     return { error: "Responda a pergunta sobre gravidez/amamentação." };
   }
@@ -193,6 +220,8 @@ export async function submitAnamneseSignature(
     procedureType: procedure_type,
     procedureDescription: procedure_description,
     bodyLocation: body_location,
+    totalAmountLabel: formatCurrency(total_amount),
+    depositAmountLabel: formatCurrency(deposit_amount),
     professionalName,
     unitName,
     appointmentDateLabel,
@@ -225,6 +254,8 @@ export async function submitAnamneseSignature(
       procedure_type,
       procedure_description,
       body_location,
+      total_amount,
+      deposit_amount,
       health_declaration,
       client_origin,
       file_path,

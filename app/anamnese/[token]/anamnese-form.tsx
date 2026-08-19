@@ -132,13 +132,13 @@ export function AnamneseForm({
         <h2 className="font-semibold text-white">1. Identificação do cliente</h2>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field id="full_name" label="Nome completo" required defaultValue={defaultName} />
-          <Field id="birth_date" label="Data de nascimento" type="date" />
-          <Field id="cpf" label="CPF" />
-          <Field id="rg" label="RG" />
-          <Field id="address" label="Endereço completo" />
-          <Field id="cep" label="CEP" />
-          <Field id="phone" label="Telefone" defaultValue={defaultPhone} />
-          <Field id="email" label="E-mail" type="email" />
+          <Field id="birth_date" label="Data de nascimento" type="date" required />
+          <Field id="cpf" label="CPF" required />
+          <Field id="rg" label="RG" required />
+          <Field id="address" label="Endereço completo" required />
+          <Field id="cep" label="CEP" required />
+          <Field id="phone" label="Telefone" required defaultValue={defaultPhone} />
+          <Field id="email" label="E-mail" type="email" required />
         </div>
         <div>
           <p className="text-sm text-neutral-300">Você é menor de idade? *</p>
@@ -190,8 +190,43 @@ export function AnamneseForm({
             ))}
           </div>
         </div>
-        <Field id="procedure_description" label="Descrição (desenho/estilo ou tipo e material da jóia)" />
-        <Field id="body_location" label="Localização no corpo" />
+        <Field
+          id="procedure_description"
+          label="Descrição (desenho/estilo ou tipo e material da jóia)"
+          required
+        />
+        <Field id="body_location" label="Localização no corpo" required />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="total_amount" className="text-sm text-neutral-300">
+              Valor total do procedimento (R$)
+            </label>
+            <input
+              id="total_amount"
+              name="total_amount"
+              type="number"
+              min="0"
+              step="0.01"
+              required
+              className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-gold"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="deposit_amount" className="text-sm text-neutral-300">
+              Valor do sinal (R$) — 0 se não houve sinal
+            </label>
+            <input
+              id="deposit_amount"
+              name="deposit_amount"
+              type="number"
+              min="0"
+              step="0.01"
+              defaultValue={0}
+              required
+              className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-gold"
+            />
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">

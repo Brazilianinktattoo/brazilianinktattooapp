@@ -24,6 +24,8 @@ export type AnamnesePdfData = {
   procedureType: ProcedureType | null;
   procedureDescription: string;
   bodyLocation: string;
+  totalAmountLabel: string;
+  depositAmountLabel: string;
   professionalName: string;
   unitName: string;
   appointmentDateLabel: string;
@@ -95,6 +97,8 @@ function buildParagraphs(data: AnamnesePdfData): Paragraph[] {
     },
     field("Descrição do procedimento:", data.procedureDescription),
     field("Localização no corpo:", data.bodyLocation),
+    field("Valor total do procedimento:", data.totalAmountLabel),
+    field("Valor do sinal:", data.depositAmountLabel),
     field("Profissional responsável:", data.professionalName),
     field("Unidade:", data.unitName),
     field("Data do atendimento:", data.appointmentDateLabel, 300),

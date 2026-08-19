@@ -1,9 +1,17 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { createService, type ServiceFormState } from "@/app/actions/services";
 
 const initialState: ServiceFormState = {};
+
+const SUBCATEGORY_OPTIONS = [
+  { value: "", label: "Sem subcategoria" },
+  { value: "so_perfuracao", label: "Só perfuração" },
+  { value: "perfuracao_joia", label: "Perfuração + joia" },
+  { value: "joia_titanio", label: "Joias avulsas — Titânio" },
+  { value: "joia_aco", label: "Joias avulsas — Aço Cirúrgico" },
+];
 
 export function NewServiceForm({
   restrictToPiercing = false,
@@ -12,6 +20,8 @@ export function NewServiceForm({
 }) {
   const [state, formAction, pending] = useActionState(createService, initialState);
   const formRef = useRef<HTMLFormElement>(null);
+  const [category, setCategory] = useState(restrictToPiercing ? "piercing" : "tatuagem");
+  const isPiercing = restrictToPiercing || category === "piercing";
 
   useEffect(() => {
     if (!state.error) formRef.current?.reset();
@@ -65,11 +75,32 @@ export function NewServiceForm({
           <select
             id="category"
             name="category"
-            defaultValue="tatuagem"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
             className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
           >
             <option value="tatuagem">Tatuagem</option>
             <option value="piercing">Piercing</option>
+          </select>
+        </div>
+      )}
+
+      {isPiercing && (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="subcategory" className="text-sm text-neutral-300">
+            Subcategoria
+          </label>
+          <select
+            id="subcategory"
+            name="subcategory"
+            defaultValue=""
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+          >
+            {SUBCATEGORY_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
           </select>
         </div>
       )}

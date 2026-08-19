@@ -204,10 +204,18 @@ export type CardFeeRate = {
   created_at: string;
 };
 
+export type ServiceSubcategory =
+  | ""
+  | "so_perfuracao"
+  | "perfuracao_joia"
+  | "joia_titanio"
+  | "joia_aco";
+
 export type Service = {
   id: string;
   name: string;
   category: ServiceCategory;
+  subcategory: ServiceSubcategory;
   price: number;
   active: boolean;
   created_at: string;
@@ -264,6 +272,8 @@ export type AnamneseForm = {
   procedure_type: ProcedureType | null;
   procedure_description: string;
   body_location: string;
+  total_amount: number;
+  deposit_amount: number;
   health_declaration: HealthDeclaration;
   client_origin: ClientOrigin | null;
   file_path: string | null;

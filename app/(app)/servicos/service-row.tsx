@@ -4,6 +4,13 @@ import { useState, useTransition } from "react";
 import { updateServicePrice, setServiceActive } from "@/app/actions/services";
 import type { Service } from "@/lib/types/database";
 
+const SUBCATEGORY_LABEL: Record<string, string> = {
+  so_perfuracao: "Só perfuração",
+  perfuracao_joia: "Perfuração + joia",
+  joia_titanio: "Joia — Titânio",
+  joia_aco: "Joia — Aço Cirúrgico",
+};
+
 export function ServiceRow({ service }: { service: Service }) {
   const [price, setPrice] = useState(service.price);
   const [active, setActive] = useState(service.active);
@@ -16,6 +23,11 @@ export function ServiceRow({ service }: { service: Service }) {
         {service.category === "piercing" && (
           <span className="mt-1 inline-block rounded-full bg-purple-500/15 px-2 py-0.5 text-xs text-purple-300">
             Piercing
+          </span>
+        )}
+        {service.subcategory && (
+          <span className="mt-1 ml-1 inline-block rounded-full bg-neutral-700/40 px-2 py-0.5 text-xs text-neutral-300">
+            {SUBCATEGORY_LABEL[service.subcategory] ?? service.subcategory}
           </span>
         )}
       </td>
