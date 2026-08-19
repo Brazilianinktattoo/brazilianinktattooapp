@@ -79,6 +79,20 @@ export async function updateCollaboratorRole(id: string, role: UserRole) {
   revalidatePath("/colaboradores");
 }
 
+export async function updateCollaboratorBirthday(id: string, birthday: string) {
+  const { profile } = await requireAdminOrChefePiercing();
+  if (profile.role === "chefe_piercing") {
+    if ((await getTargetRole(id)) !== "piercer") return;
+  }
+
+  const supabase = await createClient();
+  await supabase
+    .from("profiles")
+    .update({ birthday: birthday || null })
+    .eq("id", id);
+  revalidatePath("/colaboradores");
+}
+
 export async function updateCollaboratorName(id: string, full_name: string) {
   const { profile } = await requireAdminOrChefePiercing();
   if (!full_name.trim()) return;

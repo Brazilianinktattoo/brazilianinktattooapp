@@ -5,6 +5,7 @@ import {
   updateCollaboratorRole,
   updateCollaboratorName,
   updateCollaboratorEmail,
+  updateCollaboratorBirthday,
   setCollaboratorActive,
   resetCollaboratorPassword,
   type ResetPasswordState,
@@ -42,6 +43,7 @@ export function CollaboratorRow({
   const [role, setRole] = useState(profile.role);
   const [active, setActive] = useState(profile.active);
   const [fullName, setFullName] = useState(profile.full_name);
+  const [birthday, setBirthday] = useState(profile.birthday ?? "");
   const [pending, startTransition] = useTransition();
   const [resetState, resetAction, resetPending] = useActionState(
     resetCollaboratorPassword,
@@ -71,6 +73,19 @@ export function CollaboratorRow({
           className="w-40 rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-neutral-100 outline-none hover:border-neutral-700 focus:border-gold focus:bg-neutral-900 disabled:opacity-60"
         />
         <div className="text-xs text-neutral-500">{profile.email}</div>
+        <input
+          type="date"
+          value={birthday}
+          disabled={pending}
+          title="Aniversário"
+          onChange={(e) => setBirthday(e.target.value)}
+          onBlur={() => {
+            if (birthday !== (profile.birthday ?? "")) {
+              startTransition(() => updateCollaboratorBirthday(profile.id, birthday));
+            }
+          }}
+          className="mt-1 rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1 text-xs text-neutral-100 outline-none focus:border-gold [color-scheme:dark] disabled:opacity-60"
+        />
         <details className="mt-1 text-xs">
           <summary className="cursor-pointer text-neutral-500 hover:text-white">
             Trocar e-mail

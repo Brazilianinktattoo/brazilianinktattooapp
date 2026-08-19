@@ -23,6 +23,7 @@ export type Profile = {
   email: string;
   role: UserRole;
   active: boolean;
+  birthday: string | null;
   created_at: string;
   updated_at: string;
 };
