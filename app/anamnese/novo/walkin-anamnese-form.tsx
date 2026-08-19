@@ -120,7 +120,13 @@ export function WalkinAnamneseForm({
   if (professionals.length === 0) {
     return (
       <div className="rounded-xl border border-amber-800 bg-amber-500/10 p-6 text-center text-amber-300">
-        Nenhum profissional disponível no momento. Fale com a recepção.
+        <p className="font-medium">
+          Nenhum profissional disponível pra atendimento no momento.
+        </p>
+        <p className="mt-1 text-sm text-amber-300/80">
+          Fale com a recepção. (Admin: ative em Colaboradores → &quot;Na
+          ficha por QR Code&quot;.)
+        </p>
       </div>
     );
   }
