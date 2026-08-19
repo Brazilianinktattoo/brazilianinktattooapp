@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { blockChefePiercing, requireProfile } from "@/lib/auth";
+import { requireProfile } from "@/lib/auth";
 import { monthOf, todayParam, yearOf } from "@/lib/date";
 import { DayView } from "../day-view";
 import { MonthView } from "../month-view";
@@ -14,7 +14,6 @@ type AgendaViewKey = "dia" | "mes" | "ano";
 export default async function AgendaPage(props: PageProps<"/agenda">) {
   const searchParams = await props.searchParams;
   const { user, profile } = await requireProfile();
-  await blockChefePiercing(profile);
   if (profile.role !== "admin") redirect("/");
 
   const requestedView =

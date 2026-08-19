@@ -47,7 +47,8 @@ async function upsertClientForAppointment(
   supabase: SupabaseServerClient,
   name: string,
   phone: string,
-  birthday: string
+  birthday: string,
+  createdBy: string
 ): Promise<string | null> {
   const normalizedPhone = normalizePhone(phone);
   if (!normalizedPhone) return null;
@@ -70,7 +71,12 @@ async function upsertClientForAppointment(
 
   const { data: created } = await supabase
     .from("clients")
-    .insert({ full_name: name, phone: normalizedPhone, birthday: birthday || null })
+    .insert({
+      full_name: name,
+      phone: normalizedPhone,
+      birthday: birthday || null,
+      created_by: createdBy,
+    })
     .select("id")
     .single();
 
@@ -158,7 +164,8 @@ export async function createAppointment(
     supabase,
     parsed.data.client_name,
     parsed.data.client_phone,
-    parsed.client_birthday
+    parsed.client_birthday,
+    user.id
   );
   const { error } = await supabase
     .from("appointments")
@@ -189,7 +196,8 @@ export async function updateAppointment(
     supabase,
     parsed.data.client_name,
     parsed.data.client_phone,
-    parsed.client_birthday
+    parsed.client_birthday,
+    user.id
   );
   const { error } = await supabase
     .from("appointments")

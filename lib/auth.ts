@@ -62,9 +62,19 @@ export async function requireAdminOrChefePiercing() {
   return result;
 }
 
-// Chefe de Piercing não tem acesso à agenda/mapa/criação de agendamentos —
-// só a Colaboradores (piercer), Estoque (piercing) e Relatórios. Chame isto
-// no topo de qualquer tela de agenda para mandá-lo pro lugar certo.
+// Quem atende cliente pode cadastrar um novo cliente direto do próprio
+// painel, sem passar pela recepção (admin continua podendo tudo).
+export async function requireClientRegistrar() {
+  const result = await requireProfile();
+  if (!["admin", "tatuador", "chefe_piercing"].includes(result.profile.role)) {
+    redirect("/");
+  }
+  return result;
+}
+
+// Chefe de Piercing agora tem agenda/comandas próprias (igual body
+// piercer) — isto só continua bloqueando as telas realmente exclusivas de
+// admin (ex.: /agenda com as visões dia/mês/ano).
 export async function blockChefePiercing(
   profile: Pick<Profile, "role">,
   redirectTo = "/colaboradores"

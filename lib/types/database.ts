@@ -76,6 +76,7 @@ export type Client = {
   phone: string;
   birthday: string | null;
   notes: string;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 };

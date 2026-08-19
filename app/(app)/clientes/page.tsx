@@ -38,6 +38,12 @@ export default async function ClientesPage(props: PageProps<"/clientes">) {
     }
   }
 
+  const registrarIds = [...new Set(list.map((c) => c.created_by).filter((id): id is string => !!id))];
+  const { data: registrars } = registrarIds.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", registrarIds)
+    : { data: [] as { id: string; full_name: string }[] };
+  const registrarNameById = new Map((registrars ?? []).map((p) => [p.id, p.full_name || "Sem nome"]));
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -83,6 +89,7 @@ export default async function ClientesPage(props: PageProps<"/clientes">) {
               <th className="py-3 pr-4 font-medium">Telefone</th>
               <th className="py-3 pr-4 font-medium">Aniversário</th>
               <th className="py-3 pr-4 font-medium">Última visita</th>
+              <th className="py-3 pr-4 font-medium">Cadastrado por</th>
             </tr>
           </thead>
           <tbody>
@@ -91,6 +98,7 @@ export default async function ClientesPage(props: PageProps<"/clientes">) {
                 key={c.id}
                 client={c}
                 lastVisit={lastVisitByClient.get(c.id) ?? null}
+                registrarName={c.created_by ? (registrarNameById.get(c.created_by) ?? null) : null}
               />
             ))}
           </tbody>

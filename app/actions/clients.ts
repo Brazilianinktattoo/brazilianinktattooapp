@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireClientRegistrar } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { normalizePhone } from "@/lib/phone";
 import { parseCsv } from "@/lib/csv";
@@ -16,7 +16,7 @@ export async function createClientManually(
   _prevState: CreateClientState,
   formData: FormData
 ): Promise<CreateClientState> {
-  await requireAdmin();
+  const { user } = await requireClientRegistrar();
   const full_name = String(formData.get("full_name") ?? "").trim();
   const phone = normalizePhone(String(formData.get("phone") ?? ""));
   const birthday = String(formData.get("birthday") ?? "").trim();
@@ -40,10 +40,12 @@ export async function createClientManually(
     phone,
     birthday: birthday || null,
     notes,
+    created_by: user.id,
   });
   if (error) return { error: "Não foi possível salvar o cliente." };
 
   revalidatePath("/clientes");
+  revalidatePath("/cadastro-cliente");
   return { success: true };
 }
 

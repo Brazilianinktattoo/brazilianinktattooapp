@@ -11,9 +11,11 @@ function formatDate(iso: string) {
 export function ClientRow({
   client,
   lastVisit,
+  registrarName,
 }: {
   client: Client;
   lastVisit: string | null;
+  registrarName?: string | null;
 }) {
   const [birthday, setBirthday] = useState(client.birthday ?? "");
   const [pending, startTransition] = useTransition();
@@ -39,6 +41,7 @@ export function ClientRow({
       <td className="py-3 pr-4 text-neutral-300">
         {lastVisit ? formatDate(lastVisit) : "—"}
       </td>
+      <td className="py-3 pr-4 text-neutral-300">{registrarName || "—"}</td>
     </tr>
   );
 }

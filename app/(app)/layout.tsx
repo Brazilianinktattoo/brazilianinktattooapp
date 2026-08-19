@@ -84,10 +84,18 @@ export default async function AppLayout({
                   <Link href="/meus-clientes" className={NAV_LINK_CLASS}>
                     Meus Clientes
                   </Link>
+                  <Link href="/cadastro-cliente" className={NAV_LINK_CLASS}>
+                    Cadastro de Cliente
+                  </Link>
                   <Link href="/fichas" className={NAV_LINK_CLASS}>
                     Fichas
                   </Link>
                 </>
+              )}
+              {profile.role === "chefe_piercing" && (
+                <Link href="/cadastro-cliente" className={NAV_LINK_CLASS}>
+                  Cadastro de Cliente
+                </Link>
               )}
               {profile.role === "admin" && (
                 <>

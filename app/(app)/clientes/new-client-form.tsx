@@ -5,8 +5,8 @@ import { createClientManually, type CreateClientState } from "@/app/actions/clie
 
 const initialState: CreateClientState = {};
 
-export function NewClientForm() {
-  const [open, setOpen] = useState(false);
+export function NewClientForm({ defaultOpen = false }: { defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   const [state, formAction, pending] = useActionState(createClientManually, initialState);
   const formRef = useRef<HTMLFormElement>(null);
 
