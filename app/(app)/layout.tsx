@@ -125,14 +125,17 @@ export default async function AppLayout({
 
           <div className="flex items-center gap-3 text-sm">
             <NotificationBell notifications={notifications ?? []} />
-            <div className="text-right leading-tight">
+            <Link
+              href="/minha-conta"
+              className="text-right leading-tight hover:text-gold"
+            >
               <div className="text-neutral-200">
                 {profile.full_name || "Sem nome"}
               </div>
               <div className="text-xs text-neutral-500">
                 {ROLE_LABEL[profile.role] ?? profile.role}
               </div>
-            </div>
+            </Link>
             <form action={logout}>
               <button
                 type="submit"
