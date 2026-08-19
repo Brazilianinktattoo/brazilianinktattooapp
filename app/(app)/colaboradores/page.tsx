@@ -40,7 +40,10 @@ export default async function ColaboradoresPage() {
               <th className="py-3 pl-4 pr-4 font-medium">Colaborador</th>
               <th className="py-3 pr-4 font-medium">Acesso</th>
               <th className="py-3 pr-4 font-medium">Status</th>
-              <th className="py-3 font-medium">Senha</th>
+              <th className="py-3 pr-4 font-medium">Senha</th>
+              {!isChefePiercing && (
+                <th className="py-3 font-medium">Ações</th>
+              )}
             </tr>
           </thead>
           <tbody>

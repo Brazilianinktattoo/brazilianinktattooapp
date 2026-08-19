@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAdminOrTatuador, requireProfile } from "@/lib/auth";
+import { requireAdmin, requireProfile } from "@/lib/auth";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { STUDIO_TZ } from "@/lib/date";
 import { getFormText } from "@/lib/form-texts";
@@ -34,7 +34,7 @@ export async function generateStudentAnamneseForm(
   _prevState: GenerateStudentAnamneseState,
   formData: FormData
 ): Promise<GenerateStudentAnamneseState> {
-  const { user } = await requireAdminOrTatuador();
+  const { user } = await requireAdmin();
 
   const student_name = String(formData.get("student_name") ?? "").trim();
   const procedure_location = String(formData.get("procedure_location") ?? "").trim();

@@ -17,10 +17,15 @@ export async function DayView({
   dateParam,
   user,
   profile,
+  basePath = "/",
 }: {
   dateParam: string;
   user: Awaited<ReturnType<typeof requireProfile>>["user"];
   profile: Awaited<ReturnType<typeof requireProfile>>["profile"];
+  // DayView é usado tanto na home ("/") quanto dentro de "/agenda" (aba
+  // Dia) — os links de navegação de data precisam voltar pro mesmo lugar,
+  // senão "Anterior"/"Hoje"/"Próximo" te chutam pra home e perdem a visão.
+  basePath?: string;
 }) {
   const { start, end } = dayBounds(dateParam);
 
@@ -49,19 +54,19 @@ export async function DayView({
 
         <div className="flex items-center gap-2">
           <Link
-            href={`/?date=${shiftDate(dateParam, -1)}`}
+            href={`${basePath}?date=${shiftDate(dateParam, -1)}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             ← Anterior
           </Link>
           <Link
-            href={`/?date=${todayParam()}`}
+            href={`${basePath}?date=${todayParam()}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Hoje
           </Link>
           <Link
-            href={`/?date=${shiftDate(dateParam, 1)}`}
+            href={`${basePath}?date=${shiftDate(dateParam, 1)}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Próximo →

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireProfile } from "@/lib/auth";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { STUDIO_TZ } from "@/lib/date";
+import { normalizePhone } from "@/lib/phone";
 import {
   ANAMNESE_HEALTH_QUESTIONS,
   renderAnamnesePdf,
@@ -286,6 +287,216 @@ export async function submitAnamneseSignature(
         minor_phone: phone,
         minor_email: email,
         piercer_name: professionalName,
+        body_location,
+      })
+      .select("sign_token")
+      .single();
+
+    if (authForm) {
+      return { success: true, isMinor: true, minorAuthToken: authForm.sign_token };
+    }
+  }
+
+  return { success: true, isMinor: false };
+}
+
+export type WalkinAnamneseState = {
+  error?: string;
+  success?: boolean;
+  isMinor?: boolean;
+  minorAuthToken?: string;
+};
+
+// Ficha pelo link fixo (QR Code) — o cliente escolhe o profissional numa
+// lista suspensa em vez da ficha vir pré-vinculada a um agendamento.
+// Diferente de submitAnamneseSignature: aqui não existe uma linha
+// pré-criada pra atualizar, então cria + preenche + assina tudo de uma
+// vez, e já vincula o cliente ao CRM do profissional escolhido.
+export async function submitWalkinAnamnese(
+  _prevState: WalkinAnamneseState,
+  formData: FormData
+): Promise<WalkinAnamneseState> {
+  const collaborator_id = String(formData.get("collaborator_id") ?? "");
+  const full_name = String(formData.get("full_name") ?? "").trim();
+  const birth_date = String(formData.get("birth_date") ?? "") || null;
+  const cpf = String(formData.get("cpf") ?? "").trim();
+  const rg = String(formData.get("rg") ?? "").trim();
+  const address = String(formData.get("address") ?? "").trim();
+  const cep = String(formData.get("cep") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const is_minor = formData.get("is_minor") === "sim";
+  const procedure_type = String(formData.get("procedure_type") ?? "") as ProcedureType;
+  const procedure_description = String(formData.get("procedure_description") ?? "").trim();
+  const body_location = String(formData.get("body_location") ?? "").trim();
+  const total_amount_raw = String(formData.get("total_amount") ?? "").trim().replace(",", ".");
+  const deposit_amount_raw = String(formData.get("deposit_amount") ?? "").trim().replace(",", ".");
+  const pregnantRaw = String(formData.get("pregnant") ?? "");
+  const alcohol_24h = formData.get("alcohol_24h") === "sim";
+  const client_origin = String(formData.get("client_origin") ?? "") as ClientOrigin;
+  const signer_name = String(formData.get("signer_name") ?? "").trim();
+  const agree = formData.get("agree");
+
+  if (!collaborator_id) return { error: "Selecione o profissional que vai te atender." };
+  if (!full_name) return { error: "Informe o nome completo." };
+  if (!birth_date) return { error: "Informe a data de nascimento." };
+  if (!cpf) return { error: "Informe o CPF." };
+  if (!rg) return { error: "Informe o RG." };
+  if (!address) return { error: "Informe o endereço completo." };
+  if (!cep) return { error: "Informe o CEP." };
+  if (!phone) return { error: "Informe o telefone." };
+  if (!email) return { error: "Informe o e-mail." };
+  if (!["tatuagem", "piercing", "ambos"].includes(procedure_type)) {
+    return { error: "Selecione o tipo de procedimento." };
+  }
+  if (!procedure_description) {
+    return { error: "Descreva o procedimento (desenho/estilo ou jóia)." };
+  }
+  if (!body_location) return { error: "Informe a localização no corpo." };
+
+  const total_amount = Number(total_amount_raw);
+  if (total_amount_raw === "" || Number.isNaN(total_amount) || total_amount < 0) {
+    return { error: "Informe o valor total do procedimento." };
+  }
+  const deposit_amount = Number(deposit_amount_raw);
+  if (deposit_amount_raw === "" || Number.isNaN(deposit_amount) || deposit_amount < 0) {
+    return { error: "Informe o valor do sinal (0 se não houve sinal)." };
+  }
+
+  if (!["nao", "sim", "nao_se_aplica"].includes(pregnantRaw)) {
+    return { error: "Responda a pergunta sobre gravidez/amamentação." };
+  }
+  if (!ORIGIN_OPTIONS.includes(client_origin)) {
+    return { error: "Selecione uma das opções de origem do cliente." };
+  }
+  if (!signer_name) return { error: "Informe seu nome completo na assinatura." };
+  if (!agree) return { error: "Confirme que as informações são verdadeiras." };
+
+  const admin = createAdminClient();
+
+  const { data: collaborator } = await admin
+    .from("profiles")
+    .select("id, full_name, role, active, qr_anamnese_enabled")
+    .eq("id", collaborator_id)
+    .maybeSingle();
+
+  if (
+    !collaborator ||
+    !collaborator.active ||
+    !collaborator.qr_anamnese_enabled ||
+    (collaborator.role !== "tatuador" && collaborator.role !== "piercer")
+  ) {
+    return { error: "Profissional inválido ou indisponível. Atualize a página e tente de novo." };
+  }
+
+  const health_declaration = readHealthDeclaration(formData);
+  const pregnantLabel =
+    pregnantRaw === "sim"
+      ? "( ) Não   ( X ) Sim   ( ) Não se aplica"
+      : pregnantRaw === "nao_se_aplica"
+        ? "( ) Não   ( ) Sim   ( X ) Não se aplica"
+        : "( X ) Não   ( ) Sim   ( ) Não se aplica";
+
+  const signedAt = new Date();
+  const pdf = await renderAnamnesePdf({
+    fullName: full_name,
+    birthDateLabel: new Date(`${birth_date}T12:00:00Z`).toLocaleDateString("pt-BR"),
+    cpf,
+    rg,
+    address,
+    cep,
+    phone,
+    email,
+    isMinor: is_minor,
+    procedureType: procedure_type,
+    procedureDescription: procedure_description,
+    bodyLocation: body_location,
+    totalAmountLabel: formatCurrency(total_amount),
+    depositAmountLabel: formatCurrency(deposit_amount),
+    professionalName: collaborator.full_name,
+    unitName: "",
+    appointmentDateLabel: dateTimeLabel(signedAt),
+    healthDeclaration: health_declaration,
+    pregnantAnswer: pregnantLabel,
+    alcohol24h: alcohol_24h,
+    signed: true,
+    signerName: signer_name,
+    signedAtLabel: dateTimeLabel(signedAt),
+  });
+
+  const { data: created, error: insertError } = await admin
+    .from("anamnese_forms")
+    .insert({
+      collaborator_id,
+      full_name,
+      birth_date,
+      cpf,
+      rg,
+      address,
+      cep,
+      phone,
+      email,
+      is_minor,
+      procedure_type,
+      procedure_description,
+      body_location,
+      total_amount,
+      deposit_amount,
+      health_declaration,
+      client_origin,
+      signer_name,
+      signed_at: signedAt.toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !created) return { error: "Não foi possível enviar a ficha." };
+
+  const file_path = `anamnese/${created.id}.pdf`;
+  const { error: uploadError } = await admin.storage
+    .from("documentos")
+    .upload(file_path, pdf, { contentType: "application/pdf", upsert: true });
+  if (!uploadError) {
+    await admin.from("anamnese_forms").update({ file_path }).eq("id", created.id);
+  }
+
+  // Um único formulário substitui cadastro + ficha: vincula (ou atualiza)
+  // o cliente no CRM, já como "cadastrado por" o profissional escolhido.
+  const normalizedPhone = normalizePhone(phone);
+  if (normalizedPhone) {
+    const { data: existingClient } = await admin
+      .from("clients")
+      .select("id, full_name, birthday")
+      .eq("phone", normalizedPhone)
+      .maybeSingle();
+
+    if (existingClient) {
+      const patch: { full_name?: string; birthday?: string } = {};
+      if (full_name && full_name !== existingClient.full_name) patch.full_name = full_name;
+      if (birth_date && !existingClient.birthday) patch.birthday = birth_date;
+      if (Object.keys(patch).length > 0) {
+        await admin.from("clients").update(patch).eq("id", existingClient.id);
+      }
+    } else {
+      await admin.from("clients").insert({
+        full_name,
+        phone: normalizedPhone,
+        birthday: birth_date || null,
+        created_by: collaborator_id,
+      });
+    }
+  }
+
+  if (is_minor) {
+    const { data: authForm } = await admin
+      .from("minor_authorization_forms")
+      .insert({
+        anamnese_form_id: created.id,
+        minor_name: full_name,
+        minor_birth_date: birth_date,
+        minor_phone: phone,
+        minor_email: email,
+        piercer_name: collaborator.full_name,
         body_location,
       })
       .select("sign_token")

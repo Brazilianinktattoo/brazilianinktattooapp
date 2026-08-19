@@ -52,19 +52,19 @@ export async function YearView({ yearParam }: { yearParam: string }) {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href={`/?view=ano&year=${shiftYear(yearParam, -1)}`}
+            href={`/agenda?view=ano&year=${shiftYear(yearParam, -1)}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             ← Anterior
           </Link>
           <Link
-            href={`/?view=ano&year=${todayParam().slice(0, 4)}`}
+            href={`/agenda?view=ano&year=${todayParam().slice(0, 4)}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Hoje
           </Link>
           <Link
-            href={`/?view=ano&year=${shiftYear(yearParam, 1)}`}
+            href={`/agenda?view=ano&year=${shiftYear(yearParam, 1)}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Próximo →
@@ -81,7 +81,7 @@ export async function YearView({ yearParam }: { yearParam: string }) {
           return (
             <Link
               key={label}
-              href={`/?view=mes&month=${monthValue}`}
+              href={`/agenda?view=mes&month=${monthValue}`}
               className={`rounded-xl border bg-neutral-900/40 p-4 transition hover:border-gold-soft ${
                 isCurrentMonth ? "border-gold" : "border-neutral-800"
               }`}

@@ -157,6 +157,59 @@ export async function setCollaboratorActive(id: string, active: boolean) {
   revalidatePath("/colaboradores");
 }
 
+// Só Admin edita quem aparece na lista de profissionais da Ficha de
+// Anamnese com URL fixa (QR Code) — pedido explícito, mesmo chefe_piercing
+// não mexe aqui.
+export async function setQrAnamneseEnabled(id: string, enabled: boolean) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase.from("profiles").update({ qr_anamnese_enabled: enabled }).eq("id", id);
+  revalidatePath("/colaboradores");
+}
+
+export type DeleteCollaboratorResult = {
+  error?: string;
+  success?: boolean;
+};
+
+// Só existe de verdade pra Tatuador/Body Piercer sem histórico — o banco
+// bloqueia (por design) excluir quem já tem agendamento/comanda vinculada,
+// pra não perder registro financeiro. Nesse caso orientamos a usar
+// "Desativar", que já existe.
+export async function deleteCollaborator(id: string): Promise<DeleteCollaboratorResult> {
+  await requireAdmin();
+
+  const targetRole = await getTargetRole(id);
+  if (targetRole !== "tatuador" && targetRole !== "piercer") {
+    return { error: "Só é possível excluir Tatuador ou Body Piercer." };
+  }
+
+  const supabase = await createClient();
+  const [{ count: apptCount }, { count: comandaCount }] = await Promise.all([
+    supabase
+      .from("appointments")
+      .select("id", { count: "exact", head: true })
+      .eq("collaborator_id", id),
+    supabase
+      .from("comandas")
+      .select("id", { count: "exact", head: true })
+      .eq("collaborator_id", id),
+  ]);
+  if ((apptCount ?? 0) > 0 || (comandaCount ?? 0) > 0) {
+    return {
+      error:
+        "Esse colaborador já tem agendamentos ou comandas — não dá pra excluir sem perder histórico. Use \"Desativar\" em vez disso.",
+    };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.deleteUser(id);
+  if (error) return { error: "Não foi possível excluir o colaborador." };
+
+  revalidatePath("/colaboradores");
+  return { success: true };
+}
+
 export type ResetPasswordState = {
   error?: string;
   success?: boolean;

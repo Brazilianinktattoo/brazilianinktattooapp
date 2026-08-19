@@ -9,12 +9,14 @@ import { YearView } from "../year-view";
 type AgendaViewKey = "dia" | "mes" | "ano";
 
 // Home do Admin virou o Dashboard — a agenda com as visões dia/mês/ano
-// mora aqui agora. Só o Admin usa essa rota (os demais têm a própria
-// agenda simples em "/").
+// mora aqui agora. Tatuador/Body Piercer também usam essa rota (pra ver o
+// estúdio inteiro em mês/ano) — a edição de cada linha continua restrita
+// a quem é dono do agendamento ou admin (ver day-view.tsx), então não é
+// preciso nenhuma checagem extra aqui.
 export default async function AgendaPage(props: PageProps<"/agenda">) {
   const searchParams = await props.searchParams;
   const { user, profile } = await requireProfile();
-  if (profile.role !== "admin") redirect("/");
+  if (!["admin", "tatuador", "piercer"].includes(profile.role)) redirect("/");
 
   const requestedView =
     typeof searchParams.view === "string" ? searchParams.view : "dia";
@@ -59,7 +61,7 @@ export default async function AgendaPage(props: PageProps<"/agenda">) {
       ) : view === "ano" ? (
         <YearView yearParam={yearParam} />
       ) : (
-        <DayView dateParam={dateParam} user={user} profile={profile} />
+        <DayView dateParam={dateParam} user={user} profile={profile} basePath="/agenda" />
       )}
     </div>
   );

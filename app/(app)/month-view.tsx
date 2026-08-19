@@ -49,19 +49,19 @@ export async function MonthView({ monthParam }: { monthParam: string }) {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href={`/?view=mes&month=${shiftMonth(monthParam, -1)}`}
+            href={`/agenda?view=mes&month=${shiftMonth(monthParam, -1)}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             ← Anterior
           </Link>
           <Link
-            href={`/?view=mes&month=${monthOf(todayParam())}`}
+            href={`/agenda?view=mes&month=${monthOf(todayParam())}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Hoje
           </Link>
           <Link
-            href={`/?view=mes&month=${shiftMonth(monthParam, 1)}`}
+            href={`/agenda?view=mes&month=${shiftMonth(monthParam, 1)}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Próximo →
@@ -84,7 +84,7 @@ export async function MonthView({ monthParam }: { monthParam: string }) {
           return (
             <Link
               key={dayParam}
-              href={`/?date=${dayParam}`}
+              href={`/agenda?date=${dayParam}`}
               className={`flex min-h-20 flex-col gap-1 rounded-lg border p-2 text-left transition hover:border-gold-soft ${
                 inMonth
                   ? "border-neutral-800 bg-neutral-900/40"

@@ -24,6 +24,9 @@ export type Profile = {
   role: UserRole;
   active: boolean;
   birthday: string | null;
+  // Aparece na lista de profissionais da Ficha de Anamnese com URL fixa
+  // (QR Code) — só Admin edita quem entra nessa lista.
+  qr_anamnese_enabled: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -278,7 +281,10 @@ export type AnamneseLanguage = "portugues" | "ingles" | "espanhol";
 
 export type AnamneseForm = {
   id: string;
-  appointment_id: string;
+  // null quando a ficha veio do link fixo (QR) — nesse caso collaborator_id
+  // é quem o cliente escolheu, em vez de vir do agendamento.
+  appointment_id: string | null;
+  collaborator_id: string | null;
   full_name: string;
   birth_date: string | null;
   cpf: string;
@@ -638,7 +644,10 @@ export type Database = {
       };
       anamnese_forms: {
         Row: AnamneseForm;
-        Insert: Partial<AnamneseForm> & { appointment_id: string };
+        // appointment_id vem obrigatório no fluxo por agendamento e ausente
+        // no fluxo por link fixo (QR) — não dá pra exigir os dois ao mesmo
+        // tempo no tipo de Insert.
+        Insert: Partial<AnamneseForm>;
         Update: Partial<AnamneseForm>;
         Relationships: [];
       };

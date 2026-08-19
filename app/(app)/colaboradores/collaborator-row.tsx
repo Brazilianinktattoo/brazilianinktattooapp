@@ -8,6 +8,8 @@ import {
   updateCollaboratorBirthday,
   setCollaboratorActive,
   resetCollaboratorPassword,
+  deleteCollaborator,
+  setQrAnamneseEnabled,
   type ResetPasswordState,
   type UpdateEmailState,
 } from "@/app/actions/collaborators";
@@ -44,7 +46,9 @@ export function CollaboratorRow({
   const [active, setActive] = useState(profile.active);
   const [fullName, setFullName] = useState(profile.full_name);
   const [birthday, setBirthday] = useState(profile.birthday ?? "");
+  const [qrEnabled, setQrEnabled] = useState(profile.qr_anamnese_enabled);
   const [pending, startTransition] = useTransition();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [resetState, resetAction, resetPending] = useActionState(
     resetCollaboratorPassword,
     initialResetState
@@ -161,6 +165,21 @@ export function CollaboratorRow({
         >
           {active ? "Ativo" : "Desativado"}
         </button>
+        {canChangeRole && (profile.role === "tatuador" || profile.role === "piercer") && (
+          <label className="mt-2 flex items-center gap-1.5 text-xs text-neutral-400">
+            <input
+              type="checkbox"
+              checked={qrEnabled}
+              disabled={pending}
+              onChange={(e) => {
+                const next = e.target.checked;
+                setQrEnabled(next);
+                startTransition(() => setQrAnamneseEnabled(profile.id, next));
+              }}
+            />
+            Na ficha por QR Code
+          </label>
+        )}
       </td>
 
       <td className="py-3">
@@ -197,6 +216,39 @@ export function CollaboratorRow({
           )}
         </details>
       </td>
+
+      {canChangeRole && (
+        <td className="py-3 pr-4">
+          {(profile.role === "tatuador" || profile.role === "piercer") && (
+            <>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  if (
+                    !confirm(
+                      `Excluir definitivamente ${profile.full_name || "esse colaborador"}? Essa ação não pode ser desfeita.`
+                    )
+                  ) {
+                    return;
+                  }
+                  setDeleteError(null);
+                  startTransition(async () => {
+                    const result = await deleteCollaborator(profile.id);
+                    if (result.error) setDeleteError(result.error);
+                  });
+                }}
+                className="text-sm text-neutral-500 hover:text-red-400 disabled:opacity-60"
+              >
+                Excluir
+              </button>
+              {deleteError && (
+                <p className="mt-1 max-w-[160px] text-xs text-red-400">{deleteError}</p>
+              )}
+            </>
+          )}
+        </td>
+      )}
     </tr>
   );
 }

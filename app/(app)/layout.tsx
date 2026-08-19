@@ -71,7 +71,13 @@ export default async function AppLayout({
             </Link>
             <nav className="flex flex-wrap items-center gap-2 text-sm text-neutral-400">
               <Link
-                href={profile.role === "admin" ? "/agenda" : "/"}
+                href={
+                  profile.role === "admin" ||
+                  profile.role === "tatuador" ||
+                  profile.role === "piercer"
+                    ? "/agenda"
+                    : "/"
+                }
                 className={NAV_LINK_CLASS}
               >
                 Agenda

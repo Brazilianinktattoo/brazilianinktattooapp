@@ -35,6 +35,10 @@ export function FeeCalculator({
       ? computeChargedAmount(grossValue, ratePercent)
       : null;
   const feeAmount = charged !== null ? Math.round((charged - grossValue) * 100) / 100 : null;
+  const installmentValue =
+    charged !== null && method === "credito" && installments > 1
+      ? Math.round((charged / installments) * 100) / 100
+      : null;
 
   return (
     <div className="flex flex-col gap-4 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
@@ -112,6 +116,12 @@ export function FeeCalculator({
                   {money(charged ?? 0)}
                 </span>
               </span>
+              {installmentValue !== null && (
+                <span>
+                  Valor de cada parcela ({installments}x):{" "}
+                  <span className="text-neutral-100">{money(installmentValue)}</span>
+                </span>
+              )}
             </div>
           )}
         </div>

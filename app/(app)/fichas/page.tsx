@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { FormText } from "@/lib/types/database";
 import { FormTextEditor } from "./form-text-editor";
 import { StudentAnamneseGenerator } from "./student-anamnese-generator";
+import { QrLinkCard } from "./qr-link-card";
 
 export default async function FichasPage() {
   const { profile } = await requireAdminOrTatuador();
@@ -42,14 +43,18 @@ export default async function FichasPage() {
           </Link>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 sm:col-span-2">
-          <h2 className="font-medium text-white">Ficha de Anamnese de Piercing</h2>
-          <p className="text-sm text-neutral-400">
-            Não precisa de agendamento prévio — preencha os dados do
-            procedimento e gere o link na hora.
-          </p>
-          <StudentAnamneseGenerator />
-        </div>
+        <QrLinkCard isAdmin={isAdmin} />
+
+        {isAdmin && (
+          <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 sm:col-span-2">
+            <h2 className="font-medium text-white">Ficha de Anamnese de Piercing</h2>
+            <p className="text-sm text-neutral-400">
+              Não precisa de agendamento prévio — preencha os dados do
+              procedimento e gere o link na hora.
+            </p>
+            <StudentAnamneseGenerator />
+          </div>
+        )}
 
         <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
           <h2 className="font-medium text-white">
