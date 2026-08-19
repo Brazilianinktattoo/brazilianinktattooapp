@@ -40,7 +40,7 @@ export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
       supabase
         .from("profiles")
         .select("*")
-        .eq("role", "piercer")
+        .in("role", ["piercer", "chefe_piercing"])
         .order("full_name")
         .returns<Profile[]>(),
       supabase
@@ -81,13 +81,16 @@ export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
       productsTotal: 0,
     });
   }
+  const isPiercingRole = (role: string | undefined) =>
+    role === "piercer" || role === "chefe_piercing";
+
   for (const a of appts ?? []) {
-    if (a.collaborator?.role !== "piercer" || a.status !== "confirmado") continue;
+    if (!isPiercingRole(a.collaborator?.role) || a.status !== "confirmado") continue;
     const row = rows.get(a.collaborator_id);
     if (row) row.appointments += 1;
   }
   for (const c of comandas ?? []) {
-    if (c.collaborator?.role !== "piercer") continue;
+    if (!isPiercingRole(c.collaborator?.role)) continue;
     const row = rows.get(c.collaborator_id);
     if (!row) continue;
     row.comandas += 1;

@@ -53,9 +53,12 @@ type RawComandaRow = {
   comanda_services: { id: string; description: string; price: number }[];
 };
 
+// Admin atua como tatuador (mesma comissão/categoria) e Chefe de Piercing
+// atua como body piercer — pedido explícito pra eles também terem
+// atendimentos próprios sem virar uma terceira categoria.
 function categoryForRole(role: string | undefined): ServiceCategory {
-  if (role === "tatuador") return "Tatuagem";
-  if (role === "piercer") return "Piercing";
+  if (role === "tatuador" || role === "admin") return "Tatuagem";
+  if (role === "piercer" || role === "chefe_piercing") return "Piercing";
   return "Outro";
 }
 

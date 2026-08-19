@@ -41,7 +41,7 @@ export default async function FechamentoFinanceiroPage(
     supabase
       .from("profiles")
       .select("id, full_name, role")
-      .in("role", ["tatuador", "piercer"])
+      .in("role", ["tatuador", "piercer", "admin", "chefe_piercing"])
       .order("full_name")
       .returns<Pick<Profile, "id" | "full_name" | "role">[]>(),
     supabase.from("units").select("*").order("name").returns<Unit[]>(),

@@ -63,7 +63,9 @@ export function AppointmentForm({
     [collaborators, collaboratorId]
   );
 
-  const showMaca = selectedRole === "tatuador";
+  // Admin atua como tatuador (usa maca); Chefe de Piercing atua como body
+  // piercer (não usa) — mesma regra aplicada no trigger do banco.
+  const showMaca = selectedRole === "tatuador" || selectedRole === "admin";
   const macasInUnit = useMemo(
     () => macas.filter((m) => m.unit_id === unitId),
     [macas, unitId]

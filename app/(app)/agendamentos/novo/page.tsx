@@ -1,4 +1,4 @@
-import { blockChefePiercing, requireProfile } from "@/lib/auth";
+import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAppointment } from "@/app/actions/agenda";
 import type { Maca, Profile, Unit } from "@/lib/types/database";
@@ -8,7 +8,6 @@ import { AppointmentForm } from "../appointment-form";
 export default async function NovoAgendamentoPage(props: PageProps<"/agendamentos/novo">) {
   const searchParams = await props.searchParams;
   const { user, profile } = await requireProfile();
-  await blockChefePiercing(profile);
 
   const defaultDate =
     typeof searchParams.date === "string" ? searchParams.date : todayParam();
@@ -20,7 +19,7 @@ export default async function NovoAgendamentoPage(props: PageProps<"/agendamento
         .from("profiles")
         .select("id, full_name, role")
         .eq("active", true)
-        .in("role", ["admin", "tatuador", "piercer"])
+        .in("role", ["admin", "tatuador", "piercer", "chefe_piercing"])
         .order("full_name")
         .returns<Pick<Profile, "id" | "full_name" | "role">[]>(),
       supabase

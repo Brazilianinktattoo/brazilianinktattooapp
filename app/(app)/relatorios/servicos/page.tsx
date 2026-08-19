@@ -9,6 +9,13 @@ function money(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+const ROLE_LABEL: Record<string, string> = {
+  admin: "Admin",
+  tatuador: "Tatuador(a)",
+  piercer: "Body Piercer",
+  chefe_piercing: "Chefe de Piercing",
+};
+
 function buildQuery(params: Record<string, string | undefined>) {
   const usp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -39,7 +46,7 @@ export default async function RelatorioServicosPage(
     supabase
       .from("profiles")
       .select("id, full_name, role")
-      .in("role", ["tatuador", "piercer"])
+      .in("role", ["tatuador", "piercer", "admin", "chefe_piercing"])
       .order("full_name")
       .returns<Pick<Profile, "id" | "full_name" | "role">[]>(),
     supabase.from("units").select("*").order("name").returns<Unit[]>(),
@@ -126,7 +133,7 @@ export default async function RelatorioServicosPage(
             <option value="">Todos</option>
             {(collaborators ?? []).map((c) => (
               <option key={c.id} value={c.id}>
-                {c.full_name || "Sem nome"} — {c.role === "tatuador" ? "Tatuador(a)" : "Body Piercer"}
+                {c.full_name || "Sem nome"} — {ROLE_LABEL[c.role] ?? c.role}
               </option>
             ))}
           </select>
