@@ -13,6 +13,7 @@ const initialState: WalkinAnamneseState = {};
 const ROLE_LABEL: Record<string, string> = {
   tatuador: "Tatuador(a)",
   piercer: "Body Piercer",
+  chefe_piercing: "Chefe de Piercing",
 };
 
 const ORIGIN_OPTIONS = [

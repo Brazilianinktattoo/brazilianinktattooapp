@@ -165,7 +165,10 @@ export function CollaboratorRow({
         >
           {active ? "Ativo" : "Desativado"}
         </button>
-        {canChangeRole && (profile.role === "tatuador" || profile.role === "piercer") && (
+        {canChangeRole &&
+          (profile.role === "tatuador" ||
+            profile.role === "piercer" ||
+            profile.role === "chefe_piercing") && (
           <label className="mt-2 flex items-center gap-1.5 text-xs text-neutral-400">
             <input
               type="checkbox"

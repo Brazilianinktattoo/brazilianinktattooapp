@@ -16,7 +16,7 @@ export default async function AnamneseNovoPage() {
   const { data: professionals } = await admin
     .from("profiles")
     .select("id, full_name, role")
-    .in("role", ["tatuador", "piercer"])
+    .in("role", ["tatuador", "piercer", "chefe_piercing"])
     .eq("active", true)
     .eq("qr_anamnese_enabled", true)
     .order("full_name")

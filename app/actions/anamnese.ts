@@ -384,7 +384,7 @@ export async function submitWalkinAnamnese(
     !collaborator ||
     !collaborator.active ||
     !collaborator.qr_anamnese_enabled ||
-    (collaborator.role !== "tatuador" && collaborator.role !== "piercer")
+    !["tatuador", "piercer", "chefe_piercing"].includes(collaborator.role)
   ) {
     return { error: "Profissional inválido ou indisponível. Atualize a página e tente de novo." };
   }
