@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireAdminOrTatuador } from "@/lib/auth";
+import { requireClientRegistrar } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { FormText } from "@/lib/types/database";
 import { FormTextEditor } from "./form-text-editor";
@@ -7,12 +7,15 @@ import { StudentAnamneseGenerator } from "./student-anamnese-generator";
 import { QrLinkCard } from "./qr-link-card";
 
 export default async function FichasPage() {
-  const { profile } = await requireAdminOrTatuador();
+  const { profile } = await requireClientRegistrar();
   const isAdmin = profile.role === "admin";
+  const isChefePiercing = profile.role === "chefe_piercing";
 
   const bitPadraoAction = isAdmin
     ? { label: "Ir para a Agenda", href: "/agenda" }
-    : { label: "Ir para Meus Clientes", href: "/meus-clientes" };
+    : profile.role === "tatuador"
+      ? { label: "Ir para Meus Clientes", href: "/meus-clientes" }
+      : { label: "Ir para a Agenda", href: "/" };
 
   const supabase = await createClient();
   const { data: texts } = isAdmin
@@ -61,7 +64,7 @@ export default async function FichasPage() {
           </div>
         )}
 
-        {isAdmin && (
+        {(isAdmin || isChefePiercing) && (
           <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 sm:col-span-2">
             <h2 className="font-medium text-white">Ficha de Anamnese de Piercing</h2>
             <p className="text-sm text-neutral-400">
