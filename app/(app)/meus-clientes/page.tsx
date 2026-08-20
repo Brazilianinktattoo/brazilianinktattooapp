@@ -12,10 +12,13 @@ type AppointmentSummary = Pick<
 
 export default async function MeusClientesPage() {
   const { user, profile } = await requireProfile();
-  // Tela pensada pro tatuador gerar a ficha de anamnese direto do próprio
-  // cliente, sem precisar de admin/recepção — os demais papéis já têm seus
-  // próprios caminhos (admin usa /clientes, o link também sai da agenda).
-  if (profile.role !== "tatuador") redirect("/");
+  // Tela pensada pro tatuador/chefe de piercing gerarem a ficha de anamnese
+  // direto do próprio cliente, sem precisar de admin/recepção — os demais
+  // papéis já têm seus próprios caminhos (admin usa /clientes, o link
+  // também sai da agenda).
+  if (profile.role !== "tatuador" && profile.role !== "chefe_piercing") {
+    redirect("/");
+  }
 
   const supabase = await createClient();
   const { data: appointments } = await supabase

@@ -108,6 +108,9 @@ export default async function AppLayout({
               )}
               {profile.role === "chefe_piercing" && (
                 <>
+                  <Link href="/meus-clientes" className={NAV_LINK_CLASS}>
+                    Meus Clientes
+                  </Link>
                   <Link href="/cadastro-cliente" className={NAV_LINK_CLASS}>
                     Cadastro de Cliente
                   </Link>
