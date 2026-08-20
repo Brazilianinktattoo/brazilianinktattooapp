@@ -1,10 +1,18 @@
 import Link from "next/link";
-import { requireComandaOwner } from "@/lib/auth";
+import { requireProfile } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
 function money(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: "Admin",
+  tatuador: "Tatuador(a)",
+  piercer: "Body Piercer",
+  chefe_piercing: "Chefe de Piercing",
+};
 
 type Row = {
   id: string;
@@ -12,23 +20,32 @@ type Row = {
   created_at: string;
   charged_amount: number | null;
   appointment: { client_name: string; starts_at: string } | null;
+  collaborator: { full_name: string; role: string } | null;
   comanda_services: { description: string; price: number }[];
   comanda_products: { quantity: number; unit_price: number }[];
   comanda_jewelry: { value: number }[];
 };
 
 export default async function ComandasListPage() {
-  const { user } = await requireComandaOwner();
+  const { user, profile } = await requireProfile();
+  const isAdmin = profile.role === "admin";
+  if (!isAdmin && !["tatuador", "piercer", "chefe_piercing"].includes(profile.role)) {
+    redirect("/");
+  }
+
   const supabase = await createClient();
 
-  const { data: comandas } = await supabase
+  // Admin tem acesso total a todas as comandas, de qualquer colaborador;
+  // os demais veem só as próprias.
+  let query = supabase
     .from("comandas")
     .select(
-      "id, status, created_at, charged_amount, appointment:appointments(client_name, starts_at), comanda_services(description, price), comanda_products(quantity, unit_price), comanda_jewelry(value)"
+      "id, status, created_at, charged_amount, appointment:appointments(client_name, starts_at), collaborator:profiles!comandas_collaborator_id_fkey(full_name, role), comanda_services(description, price), comanda_products(quantity, unit_price), comanda_jewelry(value)"
     )
-    .eq("collaborator_id", user.id)
-    .order("created_at", { ascending: false })
-    .returns<Row[]>();
+    .order("created_at", { ascending: false });
+  if (!isAdmin) query = query.eq("collaborator_id", user.id);
+
+  const { data: comandas } = await query.returns<Row[]>();
 
   const list = comandas ?? [];
 
@@ -37,8 +54,11 @@ export default async function ComandasListPage() {
       <div>
         <h1 className="text-xl font-semibold text-white">Comanda</h1>
         <p className="text-neutral-400">
-          Suas comandas, mais recentes primeiro. 🟢 fechada (pagamento
-          preenchido) · 🔴 aberta (aguardando fechamento).
+          {isAdmin
+            ? "Todas as comandas do estúdio, mais recentes primeiro."
+            : "Suas comandas, mais recentes primeiro."}{" "}
+          🟢 fechada (pagamento preenchido) · 🔴 aberta (aguardando
+          fechamento).
         </p>
       </div>
 
@@ -81,6 +101,13 @@ export default async function ComandasListPage() {
                       ? new Date(c.appointment.starts_at).toLocaleDateString("pt-BR")
                       : "—"}{" "}
                     · {serviceLabel}
+                    {isAdmin && c.collaborator && (
+                      <>
+                        {" "}
+                        · {c.collaborator.full_name || "Sem nome"} (
+                        {ROLE_LABEL[c.collaborator.role] ?? c.collaborator.role})
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
