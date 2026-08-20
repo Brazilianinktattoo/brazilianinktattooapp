@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { ViewFichaButton } from "./view-ficha-button";
+import { ViewFichaButton } from "../view-ficha-button";
 import type { AnamneseForm, Appointment, Client } from "@/lib/types/database";
 
 type AppointmentSummary = Pick<

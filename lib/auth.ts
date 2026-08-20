@@ -72,6 +72,16 @@ export async function requireClientRegistrar() {
   return result;
 }
 
+// Quem abre comanda (tatuador, body piercer, chefe de piercing) tem uma
+// aba própria listando as suas — admin já vê tudo pelos relatórios.
+export async function requireComandaOwner() {
+  const result = await requireProfile();
+  if (!["tatuador", "piercer", "chefe_piercing"].includes(result.profile.role)) {
+    redirect("/");
+  }
+  return result;
+}
+
 // Chefe de Piercing agora tem agenda/comandas próprias (igual body
 // piercer) — isto só continua bloqueando as telas realmente exclusivas de
 // admin (ex.: /agenda com as visões dia/mês/ano).

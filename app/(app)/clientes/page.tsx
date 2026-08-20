@@ -44,6 +44,30 @@ export default async function ClientesPage(props: PageProps<"/clientes">) {
     : { data: [] as { id: string; full_name: string }[] };
   const registrarNameById = new Map((registrars ?? []).map((p) => [p.id, p.full_name || "Sem nome"]));
 
+  // Ficha de anamnese mais recente de cada cliente, pra "Ver ficha" e pra
+  // pré-selecionar o profissional escolhido ao abrir o atendimento.
+  type FormRow = {
+    phone: string;
+    file_path: string | null;
+    signed_at: string | null;
+    collaborator_id: string | null;
+    appointment: { collaborator_id: string } | null;
+  };
+  const phones = list.map((c) => c.phone).filter(Boolean);
+  const { data: forms } = phones.length
+    ? await supabase
+        .from("anamnese_forms")
+        .select("phone, file_path, signed_at, collaborator_id, appointment:appointments(collaborator_id)")
+        .in("phone", phones)
+        .not("signed_at", "is", null)
+        .order("signed_at", { ascending: false })
+        .returns<FormRow[]>()
+    : { data: [] as FormRow[] };
+  const latestFormByPhone = new Map<string, FormRow>();
+  for (const f of forms ?? []) {
+    if (!latestFormByPhone.has(f.phone)) latestFormByPhone.set(f.phone, f);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -90,17 +114,24 @@ export default async function ClientesPage(props: PageProps<"/clientes">) {
               <th className="py-3 pr-4 font-medium">Aniversário</th>
               <th className="py-3 pr-4 font-medium">Última visita</th>
               <th className="py-3 pr-4 font-medium">Cadastrado por</th>
+              <th className="py-3 pr-4 font-medium" />
             </tr>
           </thead>
           <tbody>
-            {list.map((c) => (
-              <ClientRow
-                key={c.id}
-                client={c}
-                lastVisit={lastVisitByClient.get(c.id) ?? null}
-                registrarName={c.created_by ? (registrarNameById.get(c.created_by) ?? null) : null}
-              />
-            ))}
+            {list.map((c) => {
+              const form = latestFormByPhone.get(c.phone);
+              const collaboratorId = form?.collaborator_id ?? form?.appointment?.collaborator_id ?? null;
+              return (
+                <ClientRow
+                  key={c.id}
+                  client={c}
+                  lastVisit={lastVisitByClient.get(c.id) ?? null}
+                  registrarName={c.created_by ? (registrarNameById.get(c.created_by) ?? null) : null}
+                  fichaFilePath={form?.file_path ?? null}
+                  collaboratorId={collaboratorId}
+                />
+              );
+            })}
           </tbody>
         </table>
         {list.length === 0 && (

@@ -52,8 +52,14 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
     (comanda.collaborator_id === user.id || profile.role === "admin") &&
     comanda.status === "aberta";
 
+  // Chefe de Piercing também atua como body piercer (mesma regra usada nos
+  // relatórios/comissão) — sem isso, o catálogo de serviços certo (piercing)
+  // nunca aparecia pra ele adicionar na própria comanda.
   const serviceCategory =
-    comanda.collaborator?.role === "piercer" ? "piercing" : "tatuagem";
+    comanda.collaborator?.role === "piercer" ||
+    comanda.collaborator?.role === "chefe_piercing"
+      ? "piercing"
+      : "tatuagem";
 
   const [
     { data: services },

@@ -37,6 +37,7 @@ export function AppointmentForm({
   defaultDate,
   defaultClientName,
   defaultClientPhone,
+  defaultCollaboratorId,
 }: {
   action: (
     state: AppointmentFormState,
@@ -50,12 +51,13 @@ export function AppointmentForm({
   defaultDate?: string;
   defaultClientName?: string;
   defaultClientPhone?: string;
+  defaultCollaboratorId?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, initialState);
   const isAdmin = currentUser.role === "admin";
 
   const [collaboratorId, setCollaboratorId] = useState(
-    appointment?.collaborator_id ?? currentUser.id
+    appointment?.collaborator_id ?? defaultCollaboratorId ?? currentUser.id
   );
   const [unitId, setUnitId] = useState(
     appointment?.unit_id ?? (units.length === 1 ? units[0].id : "")

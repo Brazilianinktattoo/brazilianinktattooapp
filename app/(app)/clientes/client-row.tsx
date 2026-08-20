@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { updateClientBirthday } from "@/app/actions/clients";
+import { ViewFichaButton } from "../view-ficha-button";
 import type { Client } from "@/lib/types/database";
 
 function formatDate(iso: string) {
@@ -12,13 +14,23 @@ export function ClientRow({
   client,
   lastVisit,
   registrarName,
+  fichaFilePath,
+  collaboratorId,
 }: {
   client: Client;
   lastVisit: string | null;
   registrarName?: string | null;
+  fichaFilePath?: string | null;
+  collaboratorId?: string | null;
 }) {
   const [birthday, setBirthday] = useState(client.birthday ?? "");
   const [pending, startTransition] = useTransition();
+
+  const appointmentHref = `/agendamentos/novo?client_name=${encodeURIComponent(
+    client.full_name
+  )}&client_phone=${encodeURIComponent(client.phone)}${
+    collaboratorId ? `&collaborator_id=${collaboratorId}` : ""
+  }`;
 
   return (
     <tr className="border-b border-neutral-800">
@@ -42,6 +54,17 @@ export function ClientRow({
         {lastVisit ? formatDate(lastVisit) : "—"}
       </td>
       <td className="py-3 pr-4 text-neutral-300">{registrarName || "—"}</td>
+      <td className="py-3 pr-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {fichaFilePath && <ViewFichaButton filePath={fichaFilePath} />}
+          <Link
+            href={appointmentHref}
+            className="rounded-lg bg-gradient-to-b from-gold-strong to-gold px-3 py-1.5 text-sm font-medium text-neutral-950 transition hover:to-copper"
+          >
+            Abrir atendimento
+          </Link>
+        </div>
+      </td>
     </tr>
   );
 }

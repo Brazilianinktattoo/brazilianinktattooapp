@@ -46,6 +46,22 @@ export default async function FichasPage() {
         <QrLinkCard isAdmin={isAdmin} />
 
         {isAdmin && (
+          <div className="flex flex-col gap-3 rounded-xl border border-gold-soft/30 bg-neutral-900/40 p-5">
+            <h2 className="font-medium text-white">Todas as Fichas de Anamnese</h2>
+            <p className="text-sm text-neutral-400">
+              Veja todas as fichas já preenchidas, de qualquer cliente e
+              qualquer colaborador — abra o PDF ou já crie o atendimento.
+            </p>
+            <Link
+              href="/fichas/todas"
+              className="mt-auto self-start rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:border-gold-soft hover:text-gold"
+            >
+              Ver todas as fichas
+            </Link>
+          </div>
+        )}
+
+        {isAdmin && (
           <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 sm:col-span-2">
             <h2 className="font-medium text-white">Ficha de Anamnese de Piercing</h2>
             <p className="text-sm text-neutral-400">
