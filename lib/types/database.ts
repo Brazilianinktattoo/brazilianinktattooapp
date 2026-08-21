@@ -35,6 +35,9 @@ export type Unit = {
   id: string;
   name: string;
   active: boolean;
+  // ID da agenda do Google (calendarId) pra onde os agendamentos dessa
+  // unidade são espelhados. null = sincronização desligada pra unidade.
+  google_calendar_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -63,6 +66,9 @@ export type Appointment = {
   status: AppointmentStatus;
   deposit_amount: number;
   deposit_status: DepositStatus;
+  // ID do evento espelhado no Google Agenda da unidade (null enquanto não
+  // sincronizado, ex: unidade sem google_calendar_id configurado).
+  google_event_id: string | null;
   created_at: string;
   updated_at: string;
 };
