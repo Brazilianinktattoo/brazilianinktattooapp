@@ -26,11 +26,13 @@ export function ClientRow({
   const [birthday, setBirthday] = useState(client.birthday ?? "");
   const [pending, startTransition] = useTransition();
 
-  const appointmentHref = `/agendamentos/novo?client_name=${encodeURIComponent(
+  const query = `client_name=${encodeURIComponent(
     client.full_name
   )}&client_phone=${encodeURIComponent(client.phone)}${
     collaboratorId ? `&collaborator_id=${collaboratorId}` : ""
   }`;
+  const comandaHref = `/comandas/abrir?${query}`;
+  const appointmentHref = `/agendamentos/novo?${query}`;
 
   return (
     <tr className="border-b border-neutral-800">
@@ -58,10 +60,16 @@ export function ClientRow({
         <div className="flex flex-wrap items-center gap-2">
           {fichaFilePath && <ViewFichaButton filePath={fichaFilePath} />}
           <Link
-            href={appointmentHref}
+            href={comandaHref}
             className="rounded-lg bg-gradient-to-b from-gold-strong to-gold px-3 py-1.5 text-sm font-medium text-neutral-950 transition hover:to-copper"
           >
-            Abrir atendimento
+            Abrir comanda
+          </Link>
+          <Link
+            href={appointmentHref}
+            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:border-gold-soft hover:text-gold"
+          >
+            Agendar
           </Link>
         </div>
       </td>

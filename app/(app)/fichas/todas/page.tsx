@@ -95,14 +95,24 @@ export default async function TodasFichasPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       {f.file_path && <ViewFichaButton filePath={f.file_path} />}
                       <Link
-                        href={`/agendamentos/novo?client_name=${encodeURIComponent(
+                        href={`/comandas/abrir?client_name=${encodeURIComponent(
                           f.full_name
                         )}&client_phone=${encodeURIComponent(f.phone)}${
                           collaboratorId ? `&collaborator_id=${collaboratorId}` : ""
                         }`}
                         className="rounded-lg bg-gradient-to-b from-gold-strong to-gold px-3 py-1.5 text-sm font-medium text-neutral-950 transition hover:to-copper"
                       >
-                        Abrir atendimento
+                        Abrir comanda
+                      </Link>
+                      <Link
+                        href={`/agendamentos/novo?client_name=${encodeURIComponent(
+                          f.full_name
+                        )}&client_phone=${encodeURIComponent(f.phone)}${
+                          collaboratorId ? `&collaborator_id=${collaboratorId}` : ""
+                        }`}
+                        className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:border-gold-soft hover:text-gold"
+                      >
+                        Agendar
                       </Link>
                     </div>
                   </td>

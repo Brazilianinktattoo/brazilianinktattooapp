@@ -118,14 +118,24 @@ export default async function MeusClientesPage() {
                         )}
                       </td>
                       <td className="py-3 pr-4">
-                        <Link
-                          href={`/agendamentos/novo?client_name=${encodeURIComponent(
-                            c.full_name
-                          )}&client_phone=${encodeURIComponent(c.phone)}`}
-                          className="rounded-lg bg-gradient-to-b from-gold-strong to-gold px-3 py-1.5 text-sm font-medium text-neutral-950 transition hover:to-copper"
-                        >
-                          Criar agendamento
-                        </Link>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Link
+                            href={`/comandas/abrir?client_name=${encodeURIComponent(
+                              c.full_name
+                            )}&client_phone=${encodeURIComponent(c.phone)}&collaborator_id=${user.id}`}
+                            className="rounded-lg bg-gradient-to-b from-gold-strong to-gold px-3 py-1.5 text-sm font-medium text-neutral-950 transition hover:to-copper"
+                          >
+                            Abrir comanda
+                          </Link>
+                          <Link
+                            href={`/agendamentos/novo?client_name=${encodeURIComponent(
+                              c.full_name
+                            )}&client_phone=${encodeURIComponent(c.phone)}`}
+                            className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:border-gold-soft hover:text-gold"
+                          >
+                            Agendar
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   );

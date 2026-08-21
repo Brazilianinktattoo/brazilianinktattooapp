@@ -164,13 +164,14 @@ export type Comanda = {
   fee_rate_percent: number;
   gross_amount: number | null;
   charged_amount: number | null;
+  commission_amount: number | null;
   created_at: string;
   updated_at: string;
   closed_at: string | null;
 };
 
 export type ComandaWithRelations = Comanda & {
-  appointment: Pick<Appointment, "id" | "client_name" | "starts_at"> | null;
+  appointment: Pick<Appointment, "id" | "client_name" | "starts_at" | "client_is_own"> | null;
   collaborator: Pick<Profile, "id" | "full_name" | "role"> | null;
   unit: Pick<Unit, "id" | "name"> | null;
 };

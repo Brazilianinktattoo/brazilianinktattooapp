@@ -2,11 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireProfile } from "@/lib/auth";
+import { requireAdmin, requireProfile } from "@/lib/auth";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { feeRatePercentFor, computeChargedAmount, PAYMENT_METHOD_LABEL } from "@/lib/fees";
 import { commissionRate, resolveClientIsOwn } from "@/lib/commission";
 import { computeCommissionDeadline } from "@/lib/commission-deadline";
+import { normalizePhone } from "@/lib/phone";
 import type { CardFeeRate, ClientOrigin, PaymentMethod } from "@/lib/types/database";
 
 export async function openComanda(formData: FormData) {
@@ -40,6 +41,118 @@ export async function openComanda(formData: FormData) {
     .single();
 
   if (error || !comanda) return;
+
+  revalidatePath("/");
+  redirect(`/comandas/${comanda.id}`);
+}
+
+export type OpenComandaFromClientState = {
+  error?: string;
+};
+
+// Abre uma comanda sem agendamento prévio — a única exigência é uma ficha
+// de anamnese já assinada pra esse telefone. Cria um agendamento "de
+// bastidores" (mesma estrutura de sempre, horário = agora) só pra manter a
+// comanda presa a um agendamento como o resto do sistema já espera
+// (relatórios, comissão, macas etc.), sem o colaborador precisar passar
+// pelo formulário completo de agendamento.
+export async function openComandaFromClient(
+  _prevState: OpenComandaFromClientState,
+  formData: FormData
+): Promise<OpenComandaFromClientState> {
+  const { user, profile } = await requireProfile();
+
+  const client_name = String(formData.get("client_name") ?? "").trim();
+  const client_phone = normalizePhone(String(formData.get("client_phone") ?? ""));
+  const collaborator_id = String(formData.get("collaborator_id") ?? "") || user.id;
+  const unit_id = String(formData.get("unit_id") ?? "");
+  const maca_id = String(formData.get("maca_id") ?? "") || null;
+
+  if (!client_name || !client_phone) {
+    return { error: "Cliente inválido — volte e tente de novo." };
+  }
+  if (!unit_id) return { error: "Selecione a unidade." };
+
+  const supabase = await createClient();
+
+  const { data: collaborator } = await supabase
+    .from("profiles")
+    .select("id, role")
+    .eq("id", collaborator_id)
+    .maybeSingle();
+  if (!collaborator) return { error: "Profissional inválido." };
+
+  const isPiercingRole = collaborator.role === "piercer" || collaborator.role === "chefe_piercing";
+  const canActAs =
+    collaborator_id === user.id ||
+    profile.role === "admin" ||
+    (profile.role === "chefe_piercing" && isPiercingRole);
+  if (!canActAs) return { error: "Sem permissão pra abrir comanda pra esse profissional." };
+
+  if ((collaborator.role === "tatuador" || collaborator.role === "admin") && !maca_id) {
+    return { error: "Selecione a maca." };
+  }
+
+  const { data: anamnese } = await supabase
+    .from("anamnese_forms")
+    .select("client_origin, signed_at")
+    .eq("phone", client_phone)
+    .not("signed_at", "is", null)
+    .order("signed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!anamnese) {
+    return {
+      error:
+        "Esse cliente ainda não tem ficha de anamnese preenchida — gere e envie a ficha antes de abrir a comanda.",
+    };
+  }
+
+  const { data: existingClient } = await supabase
+    .from("clients")
+    .select("id")
+    .eq("phone", client_phone)
+    .maybeSingle();
+  const client_id = existingClient?.id ?? null;
+
+  const now = new Date();
+  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+
+  const { data: appointment, error: appointmentError } = await supabase
+    .from("appointments")
+    .insert({
+      collaborator_id,
+      unit_id,
+      maca_id,
+      client_id,
+      client_name,
+      client_phone,
+      client_is_own: anamnese.client_origin === "trazido_pelo_tatuador",
+      notes: "Comanda aberta direto da ficha de anamnese, sem agendamento prévio.",
+      starts_at: now.toISOString(),
+      ends_at: oneHourLater.toISOString(),
+    })
+    .select("id")
+    .single();
+
+  if (appointmentError || !appointment) {
+    return {
+      error: appointmentError?.message.includes("maca")
+        ? "Maca inválida pra esse profissional/unidade."
+        : "Não foi possível abrir a comanda.",
+    };
+  }
+
+  const { data: comanda, error: comandaError } = await supabase
+    .from("comandas")
+    .insert({ appointment_id: appointment.id })
+    .select("id")
+    .single();
+
+  if (comandaError || !comanda) {
+    return { error: "Não foi possível abrir a comanda." };
+  }
 
   revalidatePath("/");
   redirect(`/comandas/${comanda.id}`);
@@ -361,5 +474,17 @@ export async function removeJewelry(comandaId: string, lineId: string) {
   await requireProfile();
   const supabase = await createClient();
   await supabase.from("comanda_jewelry").delete().eq("id", lineId);
+  revalidatePath(`/comandas/${comandaId}`);
+}
+
+// Ajuste manual do valor de comissão — só admin. null volta a usar o
+// cálculo automático (regra 70%/50%).
+export async function updateComandaCommission(comandaId: string, amount: number | null) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase
+    .from("comandas")
+    .update({ commission_amount: amount })
+    .eq("id", comandaId);
   revalidatePath(`/comandas/${comandaId}`);
 }

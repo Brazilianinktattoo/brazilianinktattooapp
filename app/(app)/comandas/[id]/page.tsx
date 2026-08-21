@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { commissionRate, resolveClientIsOwn } from "@/lib/commission";
 import type {
   ComandaProductWithRelations,
   ComandaService,
@@ -12,6 +13,7 @@ import { ComandaServices } from "./comanda-services";
 import { ComandaProducts } from "./comanda-products";
 import { ComandaJewelry } from "./comanda-jewelry";
 import { CloseComandaForm } from "./close-comanda-form";
+import { CommissionRow } from "./commission-row";
 import { PAYMENT_METHOD_LABEL } from "@/lib/fees";
 import type { ComandaJewelry as ComandaJewelryRow, JewelryCatalogItem } from "@/lib/types/database";
 
@@ -41,25 +43,29 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
   const { data: comanda } = await supabase
     .from("comandas")
     .select(
-      "*, appointment:appointments(id, client_name, starts_at), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role), unit:units(id, name)"
+      "*, appointment:appointments(id, client_name, starts_at, client_is_own), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role), unit:units(id, name)"
     )
     .eq("id", id)
     .maybeSingle<ComandaWithRelations>();
 
   if (!comanda) notFound();
 
+  const isPiercingComanda =
+    comanda.collaborator?.role === "piercer" ||
+    comanda.collaborator?.role === "chefe_piercing";
+
+  // Chefe de Piercing edita qualquer comanda de piercing (não só as
+  // próprias) — coerente com o acesso total que já tem sobre essa parte.
   const canEdit =
-    (comanda.collaborator_id === user.id || profile.role === "admin") &&
+    (comanda.collaborator_id === user.id ||
+      profile.role === "admin" ||
+      (profile.role === "chefe_piercing" && isPiercingComanda)) &&
     comanda.status === "aberta";
 
   // Chefe de Piercing também atua como body piercer (mesma regra usada nos
   // relatórios/comissão) — sem isso, o catálogo de serviços certo (piercing)
   // nunca aparecia pra ele adicionar na própria comanda.
-  const serviceCategory =
-    comanda.collaborator?.role === "piercer" ||
-    comanda.collaborator?.role === "chefe_piercing"
-      ? "piercing"
-      : "tatuagem";
+  const serviceCategory = isPiercingComanda ? "piercing" : "tatuagem";
 
   const [
     { data: services },
@@ -68,6 +74,7 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
     { data: jewelryLines },
     { data: jewelryCatalog },
     { data: serviceCatalog },
+    { data: anamnese },
   ] = await Promise.all([
     supabase
       .from("comanda_services")
@@ -106,6 +113,13 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
       .eq("category", serviceCategory)
       .order("name")
       .returns<Service[]>(),
+    comanda.appointment_id
+      ? supabase
+          .from("anamnese_forms")
+          .select("client_origin, signed_at")
+          .eq("appointment_id", comanda.appointment_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const servicesTotal = (services ?? []).reduce((s, i) => s + i.price, 0);
@@ -115,6 +129,16 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
   );
   const jewelryTotal = (jewelryLines ?? []).reduce((s, i) => s + i.value, 0);
   const grandTotal = servicesTotal + productsTotal + jewelryTotal;
+
+  // Comissão só incide sobre serviços (tatuagem/piercing), mesma regra do
+  // relatório e da notificação de comissão devida.
+  const clientIsOwn = resolveClientIsOwn(
+    comanda.appointment?.client_is_own ?? false,
+    anamnese?.client_origin,
+    anamnese?.signed_at
+  );
+  const rate = commissionRate(comanda.unit?.name ?? "", clientIsOwn);
+  const computedCommission = Math.round(servicesTotal * rate * 100) / 100;
 
   return (
     <div className="flex flex-col gap-6">
@@ -176,6 +200,16 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
             })}
           </span>
         </div>
+
+        <div className="mt-2 flex flex-col gap-1 border-t border-neutral-800 pt-2 text-sm text-neutral-300">
+          <CommissionRow
+            comandaId={comanda.id}
+            computedAmount={computedCommission}
+            savedAmount={comanda.commission_amount}
+            canEdit={profile.role === "admin"}
+          />
+        </div>
+
         {comanda.status === "fechada" ? (
           <div className="mt-2 flex flex-col gap-1 border-t border-neutral-800 pt-2 text-sm text-neutral-300">
             <div className="flex items-center justify-between">
