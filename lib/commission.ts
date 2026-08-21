@@ -1,11 +1,19 @@
 import type { ClientOrigin } from "@/lib/types/database";
 
-// Regra de comissão do estúdio (fixa, não é configurável na tela):
+// Regra de comissão do estúdio:
 //   Barra Shopping — sempre 50% pro colaborador, linear.
 //   Downtown       — 70% se o cliente é próprio do colaborador (ele que
 //                     trouxe), 50% se veio pelo estúdio.
 // Qualquer unidade que não seja "Barra Shopping" cai na regra do Downtown.
-export function commissionRate(unitName: string, clientIsOwn: boolean): number {
+// Admin pode sobrescrever com uma taxa fixa por colaborador (profiles.
+// commission_rate, editável em /comissoes) — quando definida, ignora a
+// regra automática por unidade/origem do cliente.
+export function commissionRate(
+  unitName: string,
+  clientIsOwn: boolean,
+  overrideRate?: number | null
+): number {
+  if (overrideRate !== null && overrideRate !== undefined) return overrideRate;
   const isBarraShopping = unitName.toLowerCase().includes("barra");
   if (isBarraShopping) return 0.5;
   return clientIsOwn ? 0.7 : 0.5;

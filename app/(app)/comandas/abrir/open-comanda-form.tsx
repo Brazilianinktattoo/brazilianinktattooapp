@@ -17,6 +17,8 @@ export function OpenComandaForm({
   units,
   macas,
   needsMaca,
+  isPiercingRole = false,
+  hasAnamnese = true,
 }: {
   clientName: string;
   clientPhone: string;
@@ -25,12 +27,15 @@ export function OpenComandaForm({
   units: Unit[];
   macas: Maca[];
   needsMaca: boolean;
+  isPiercingRole?: boolean;
+  hasAnamnese?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(
     openComandaFromClient,
     initialState
   );
   const [unitId, setUnitId] = useState(units.length === 1 ? units[0].id : "");
+  const [involvesPiercing, setInvolvesPiercing] = useState(hasAnamnese);
   const macasInUnit = useMemo(
     () => macas.filter((m) => m.unit_id === unitId),
     [macas, unitId]
@@ -48,6 +53,27 @@ export function OpenComandaForm({
       <p className="text-sm text-neutral-400">
         Profissional: <span className="text-neutral-200">{collaboratorName}</span>
       </p>
+
+      {isPiercingRole && (
+        <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
+          <label className="flex items-start gap-2 text-sm text-neutral-300">
+            <input
+              type="checkbox"
+              name="involves_piercing"
+              checked={involvesPiercing}
+              disabled={!hasAnamnese}
+              onChange={(e) => setInvolvesPiercing(e.target.checked)}
+              className="mt-0.5"
+            />
+            Este atendimento envolve perfuração?
+          </label>
+          <p className="mt-1 text-xs text-neutral-500">
+            {hasAnamnese
+              ? "Desmarque se for só venda/troca de jóia ou outro serviço sem perfuração — nesse caso a ficha de anamnese não é exigida."
+              : `${clientName} ainda não tem ficha de anamnese. Sem perfuração no atendimento (só jóia/outro serviço), pode abrir a comanda mesmo assim.`}
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="unit_id" className="text-sm text-neutral-300">

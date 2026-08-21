@@ -20,10 +20,13 @@ export async function createClientManually(
   const full_name = String(formData.get("full_name") ?? "").trim();
   const phone = normalizePhone(String(formData.get("phone") ?? ""));
   const birthday = String(formData.get("birthday") ?? "").trim();
+  const address = String(formData.get("address") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
   const notes = String(formData.get("notes") ?? "").trim();
 
   if (!full_name) return { error: "Informe o nome." };
   if (!phone) return { error: "Informe o telefone." };
+  if (!birthday) return { error: "Informe o aniversário." };
 
   const supabase = await createClient();
   const { data: existing } = await supabase
@@ -38,7 +41,9 @@ export async function createClientManually(
   const { error } = await supabase.from("clients").insert({
     full_name,
     phone,
-    birthday: birthday || null,
+    birthday,
+    address: address || null,
+    email: email || null,
     notes,
     created_by: user.id,
   });

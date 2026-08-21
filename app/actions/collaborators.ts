@@ -167,6 +167,23 @@ export async function setQrAnamneseEnabled(id: string, enabled: boolean) {
   revalidatePath("/colaboradores");
 }
 
+// Taxa fixa de comissão por colaborador, só Admin edita (tela /comissoes).
+// null volta a usar a regra automática por unidade/origem do cliente (ver
+// commissionRate em lib/commission.ts).
+export async function updateCollaboratorCommissionRate(
+  id: string,
+  ratePercent: number | null
+) {
+  await requireAdmin();
+  if (ratePercent !== null && (Number.isNaN(ratePercent) || ratePercent < 0 || ratePercent > 100)) {
+    return;
+  }
+  const rate = ratePercent === null ? null : Math.round(ratePercent) / 100;
+  const supabase = await createClient();
+  await supabase.from("profiles").update({ commission_rate: rate }).eq("id", id);
+  revalidatePath("/comissoes");
+}
+
 export type DeleteCollaboratorResult = {
   error?: string;
   success?: boolean;

@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { Client } from "@/lib/types/database";
+import { rangeBounds } from "@/lib/date";
+import type { Client, Profile } from "@/lib/types/database";
 import { ClientRow } from "./client-row";
 import { NewClientForm } from "./new-client-form";
 import { CsvImportForm } from "./csv-import-form";
@@ -9,12 +10,50 @@ export default async function ClientesPage(props: PageProps<"/clientes">) {
   const searchParams = await props.searchParams;
   await requireAdmin();
   const q = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
+  const from = typeof searchParams.from === "string" ? searchParams.from : "";
+  const to = typeof searchParams.to === "string" ? searchParams.to : "";
+  const collaboratorId =
+    typeof searchParams.collaborator_id === "string" ? searchParams.collaborator_id : "";
 
   const supabase = await createClient();
+
+  // Filtro por data de atendimento e/ou colaborador: acha os client_id que
+  // batem nos agendamentos, e restringe a lista de clientes a esse
+  // conjunto — combinável com a busca por nome/telefone (AND).
+  let clientIdFilter: string[] | null = null;
+  if (from || to || collaboratorId) {
+    let apptQuery = supabase.from("appointments").select("client_id");
+    if (from && to) {
+      const { start, end } = rangeBounds(from, to);
+      apptQuery = apptQuery.gte("starts_at", start.toISOString()).lt("starts_at", end.toISOString());
+    } else if (from) {
+      const { start } = rangeBounds(from, from);
+      apptQuery = apptQuery.gte("starts_at", start.toISOString());
+    } else if (to) {
+      const { end } = rangeBounds(to, to);
+      apptQuery = apptQuery.lt("starts_at", end.toISOString());
+    }
+    if (collaboratorId) apptQuery = apptQuery.eq("collaborator_id", collaboratorId);
+
+    const { data: matchingAppts } = await apptQuery;
+    clientIdFilter = [
+      ...new Set((matchingAppts ?? []).map((a) => a.client_id).filter((id): id is string => !!id)),
+    ];
+  }
+
+  const { data: collaboratorOptions } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    .in("role", ["admin", "tatuador", "piercer", "chefe_piercing"])
+    .order("full_name")
+    .returns<Pick<Profile, "id" | "full_name">[]>();
 
   let query = supabase.from("clients").select("*").order("full_name");
   if (q) {
     query = query.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%`);
+  }
+  if (clientIdFilter) {
+    query = query.in("id", clientIdFilter.length ? clientIdFilter : ["__none__"]);
   }
   const { data: clients } = await query.returns<Client[]>();
 
@@ -85,8 +124,8 @@ export default async function ClientesPage(props: PageProps<"/clientes">) {
         </div>
       </div>
 
-      <form className="flex items-end gap-3">
-        <div className="flex flex-1 flex-col gap-1.5">
+      <form className="flex flex-wrap items-end gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
+        <div className="flex flex-1 flex-col gap-1.5" style={{ minWidth: 200 }}>
           <label htmlFor="q" className="text-sm text-neutral-300">
             Buscar por nome ou telefone
           </label>
@@ -97,12 +136,62 @@ export default async function ClientesPage(props: PageProps<"/clientes">) {
             className="w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
           />
         </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="from" className="text-sm text-neutral-300">
+            Atendimento de
+          </label>
+          <input
+            id="from"
+            name="from"
+            type="date"
+            defaultValue={from}
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold [color-scheme:dark]"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="to" className="text-sm text-neutral-300">
+            até
+          </label>
+          <input
+            id="to"
+            name="to"
+            type="date"
+            defaultValue={to}
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold [color-scheme:dark]"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="collaborator_id" className="text-sm text-neutral-300">
+            Colaborador
+          </label>
+          <select
+            id="collaborator_id"
+            name="collaborator_id"
+            defaultValue={collaboratorId}
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+          >
+            <option value="">Todos</option>
+            {(collaboratorOptions ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.full_name || "Sem nome"}
+              </option>
+            ))}
+          </select>
+        </div>
         <button
           type="submit"
           className="rounded-lg border border-neutral-700 px-4 py-2 text-neutral-300 hover:border-gold-soft hover:text-gold"
         >
           Buscar
         </button>
+        {(q || from || to || collaboratorId) && (
+          <a
+            href="/clientes"
+            className="text-sm text-neutral-500 hover:text-white"
+          >
+            Limpar filtros
+          </a>
+        )}
       </form>
 
       <div className="overflow-x-auto rounded-xl border border-neutral-800">
@@ -136,7 +225,9 @@ export default async function ClientesPage(props: PageProps<"/clientes">) {
         </table>
         {list.length === 0 && (
           <p className="p-6 text-center text-neutral-500">
-            {q ? "Nenhum cliente encontrado." : "Nenhum cliente cadastrado ainda."}
+            {q || from || to || collaboratorId
+              ? "Nenhum cliente encontrado com esses filtros."
+              : "Nenhum cliente cadastrado ainda."}
           </p>
         )}
       </div>

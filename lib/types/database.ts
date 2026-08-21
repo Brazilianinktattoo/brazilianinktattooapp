@@ -27,6 +27,9 @@ export type Profile = {
   // Aparece na lista de profissionais da Ficha de Anamnese com URL fixa
   // (QR Code) — só Admin edita quem entra nessa lista.
   qr_anamnese_enabled: boolean;
+  // Taxa fixa de comissão (0 a 1), editável só por Admin em /comissoes.
+  // null = usa a regra automática por unidade/origem do cliente.
+  commission_rate: number | null;
   created_at: string;
   updated_at: string;
 };
@@ -84,6 +87,8 @@ export type Client = {
   full_name: string;
   phone: string;
   birthday: string | null;
+  address: string | null;
+  email: string | null;
   notes: string;
   created_by: string | null;
   created_at: string;
@@ -178,7 +183,7 @@ export type Comanda = {
 
 export type ComandaWithRelations = Comanda & {
   appointment: Pick<Appointment, "id" | "client_name" | "starts_at" | "client_is_own"> | null;
-  collaborator: Pick<Profile, "id" | "full_name" | "role"> | null;
+  collaborator: Pick<Profile, "id" | "full_name" | "role" | "commission_rate"> | null;
   unit: Pick<Unit, "id" | "name"> | null;
 };
 

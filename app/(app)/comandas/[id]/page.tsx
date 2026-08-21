@@ -43,7 +43,7 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
   const { data: comanda } = await supabase
     .from("comandas")
     .select(
-      "*, appointment:appointments(id, client_name, starts_at, client_is_own), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role), unit:units(id, name)"
+      "*, appointment:appointments(id, client_name, starts_at, client_is_own), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role, commission_rate), unit:units(id, name)"
     )
     .eq("id", id)
     .maybeSingle<ComandaWithRelations>();
@@ -137,7 +137,11 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
     anamnese?.client_origin,
     anamnese?.signed_at
   );
-  const rate = commissionRate(comanda.unit?.name ?? "", clientIsOwn);
+  const rate = commissionRate(
+    comanda.unit?.name ?? "",
+    clientIsOwn,
+    comanda.collaborator?.commission_rate
+  );
   const computedCommission = Math.round(servicesTotal * rate * 100) / 100;
 
   return (

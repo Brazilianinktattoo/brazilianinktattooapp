@@ -42,6 +42,12 @@ export default async function AbrirComandaPage(
     ]);
 
   const needsMaca = collaborator?.role === "tatuador" || collaborator?.role === "admin";
+  // Chefe de Piercing e Body Piercer só precisam da ficha quando o
+  // atendimento envolve perfuração — venda avulsa de jóia ou outro serviço
+  // não exige (ver toggle "Envolve perfuração?" no formulário e a checagem
+  // correspondente em openComandaFromClient).
+  const isPiercingRole =
+    collaborator?.role === "piercer" || collaborator?.role === "chefe_piercing";
 
   if (!client_name || !client_phone) {
     return (
@@ -55,7 +61,7 @@ export default async function AbrirComandaPage(
     );
   }
 
-  if (!anamnese) {
+  if (!anamnese && !isPiercingRole) {
     return (
       <div className="flex flex-col gap-6">
         <h1 className="text-xl font-semibold text-white">Abrir comanda</h1>
@@ -80,7 +86,8 @@ export default async function AbrirComandaPage(
         </Link>
         <h1 className="mt-1 text-xl font-semibold text-white">Abrir comanda</h1>
         <p className="text-neutral-400">
-          {client_name} · {client_phone} — ficha de anamnese já preenchida.
+          {client_name} · {client_phone}
+          {anamnese ? " — ficha de anamnese já preenchida." : ""}
         </p>
       </div>
 
@@ -92,6 +99,8 @@ export default async function AbrirComandaPage(
         units={units ?? []}
         macas={macas ?? []}
         needsMaca={needsMaca}
+        isPiercingRole={isPiercingRole}
+        hasAnamnese={!!anamnese}
       />
     </div>
   );

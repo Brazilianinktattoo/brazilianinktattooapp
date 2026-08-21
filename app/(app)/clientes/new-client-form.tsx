@@ -58,13 +58,35 @@ export function NewClientForm({ defaultOpen = false }: { defaultOpen?: boolean }
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="birthday" className="text-sm text-neutral-300">
-            Aniversário (opcional)
+            Aniversário
           </label>
           <input
             id="birthday"
             name="birthday"
             type="date"
+            required
             className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-gold [color-scheme:dark]"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="email" className="text-sm text-neutral-300">
+            E-mail (opcional)
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-gold"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <label htmlFor="address" className="text-sm text-neutral-300">
+            Endereço (opcional)
+          </label>
+          <input
+            id="address"
+            name="address"
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-gold"
           />
         </div>
         <div className="flex flex-col gap-1.5">

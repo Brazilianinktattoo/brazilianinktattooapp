@@ -36,7 +36,12 @@ type RawComandaRow = {
   id: string;
   closed_at: string | null;
   unit: { id: string; name: string } | null;
-  collaborator: { id: string; full_name: string; role: string } | null;
+  collaborator: {
+    id: string;
+    full_name: string;
+    role: string;
+    commission_rate: number | null;
+  } | null;
   appointment:
     | {
         id: string;
@@ -71,7 +76,7 @@ export async function fetchServiceReportLines(
   const { data } = await supabase
     .from("comandas")
     .select(
-      "id, closed_at, unit:units(id, name), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role), appointment:appointments!comandas_appointment_id_fkey(id, client_name, client_is_own, anamnese_forms(client_origin, signed_at)), comanda_services(id, description, price)"
+      "id, closed_at, unit:units(id, name), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role, commission_rate), appointment:appointments!comandas_appointment_id_fkey(id, client_name, client_is_own, anamnese_forms(client_origin, signed_at)), comanda_services(id, description, price)"
     )
     .eq("status", "fechada")
     .gte("closed_at", start.toISOString())
@@ -88,7 +93,7 @@ export async function fetchServiceReportLines(
       anamnese?.client_origin,
       anamnese?.signed_at
     );
-    const rate = commissionRate(unitName, clientIsOwn);
+    const rate = commissionRate(unitName, clientIsOwn, c.collaborator?.commission_rate);
     for (const s of c.comanda_services ?? []) {
       lines.push({
         comandaId: c.id,

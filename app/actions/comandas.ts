@@ -102,7 +102,13 @@ export async function openComandaFromClient(
     .limit(1)
     .maybeSingle();
 
-  if (!anamnese) {
+  // Chefe de Piercing/Body Piercer só precisam da ficha quando o
+  // atendimento envolve perfuração — venda avulsa de jóia ou outro
+  // serviço não exige. Tatuador/Admin continuam exigindo sempre.
+  const involvesPiercing = formData.get("involves_piercing") === "on";
+  const requiresAnamnese = !isPiercingRole || involvesPiercing;
+
+  if (requiresAnamnese && !anamnese) {
     return {
       error:
         "Esse cliente ainda não tem ficha de anamnese preenchida — gere e envie a ficha antes de abrir a comanda.",
@@ -128,8 +134,10 @@ export async function openComandaFromClient(
       client_id,
       client_name,
       client_phone,
-      client_is_own: anamnese.client_origin === "trazido_pelo_tatuador",
-      notes: "Comanda aberta direto da ficha de anamnese, sem agendamento prévio.",
+      client_is_own: anamnese?.client_origin === "trazido_pelo_tatuador",
+      notes: anamnese
+        ? "Comanda aberta direto da ficha de anamnese, sem agendamento prévio."
+        : "Comanda aberta sem agendamento prévio — sem perfuração, ficha de anamnese não exigida.",
       starts_at: now.toISOString(),
       ends_at: oneHourLater.toISOString(),
     })
@@ -263,12 +271,12 @@ async function notifyAdminsOfCommissionDue(
     const { data: comandaInfo } = await supabase
       .from("comandas")
       .select(
-        "appointment_id, collaborator:profiles!comandas_collaborator_id_fkey(full_name), unit:units(name), appointment:appointments!comandas_appointment_id_fkey(client_is_own, anamnese_forms(client_origin, signed_at))"
+        "appointment_id, collaborator:profiles!comandas_collaborator_id_fkey(full_name, commission_rate), unit:units(name), appointment:appointments!comandas_appointment_id_fkey(client_is_own, anamnese_forms(client_origin, signed_at))"
       )
       .eq("id", comandaId)
       .maybeSingle<{
         appointment_id: string;
-        collaborator: { full_name: string } | null;
+        collaborator: { full_name: string; commission_rate: number | null } | null;
         unit: { name: string } | null;
         appointment: {
           client_is_own: boolean;
@@ -283,7 +291,11 @@ async function notifyAdminsOfCommissionDue(
       comandaInfo.appointment?.anamnese_forms?.client_origin,
       comandaInfo.appointment?.anamnese_forms?.signed_at
     );
-    const rate = commissionRate(comandaInfo.unit.name, clientIsOwn);
+    const rate = commissionRate(
+      comandaInfo.unit.name,
+      clientIsOwn,
+      comandaInfo.collaborator.commission_rate
+    );
     const commissionAmount = Math.round(servicesGross * rate * 100) / 100;
     const deadline = computeCommissionDeadline(paymentMethod, paidAt);
 
