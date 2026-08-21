@@ -22,6 +22,7 @@ type ComandaRow = {
   collaborator: { role: string } | null;
   comanda_services: { price: number }[];
   comanda_products: { quantity: number; unit_price: number }[];
+  comanda_jewelry: { value: number }[];
 };
 
 export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
@@ -54,7 +55,7 @@ export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
       supabase
         .from("comandas")
         .select(
-          "id, collaborator_id, collaborator:profiles!comandas_collaborator_id_fkey(role), comanda_services(price), comanda_products(quantity, unit_price)"
+          "id, collaborator_id, collaborator:profiles!comandas_collaborator_id_fkey(role), comanda_services(price), comanda_products(quantity, unit_price), comanda_jewelry(value)"
         )
         .gte("created_at", start.toISOString())
         .lt("created_at", end.toISOString())
@@ -68,6 +69,7 @@ export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
     comandas: number;
     servicesTotal: number;
     productsTotal: number;
+    jewelryTotal: number;
   };
 
   const rows = new Map<string, Row>();
@@ -79,6 +81,7 @@ export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
       comandas: 0,
       servicesTotal: 0,
       productsTotal: 0,
+      jewelryTotal: 0,
     });
   }
   const isPiercingRole = (role: string | undefined) =>
@@ -102,11 +105,15 @@ export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
       (s, x) => s + x.quantity * x.unit_price,
       0
     );
+    row.jewelryTotal += (c.comanda_jewelry ?? []).reduce(
+      (s, x) => s + x.value,
+      0
+    );
   }
 
   const list = Array.from(rows.values());
   const grandTotal = list.reduce(
-    (s, r) => s + r.servicesTotal + r.productsTotal,
+    (s, r) => s + r.servicesTotal + r.productsTotal + r.jewelryTotal,
     0
   );
 
@@ -163,6 +170,7 @@ export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
                 <th className="py-3 pr-4 font-medium">Comandas</th>
                 <th className="py-3 pr-4 font-medium">Serviços</th>
                 <th className="py-3 pr-4 font-medium">Produtos</th>
+                <th className="py-3 pr-4 font-medium">Jóias</th>
                 <th className="py-3 pr-4 font-medium">Total</th>
               </tr>
             </thead>
@@ -182,8 +190,11 @@ export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
                   <td className="py-3 pr-4 text-neutral-300">
                     {formatMoney(r.productsTotal)}
                   </td>
+                  <td className="py-3 pr-4 text-neutral-300">
+                    {formatMoney(r.jewelryTotal)}
+                  </td>
                   <td className="py-3 pr-4 font-medium text-white">
-                    {formatMoney(r.servicesTotal + r.productsTotal)}
+                    {formatMoney(r.servicesTotal + r.productsTotal + r.jewelryTotal)}
                   </td>
                 </tr>
               ))}
