@@ -1,12 +1,23 @@
 import { createSign } from "crypto";
 
-// Espelha agendamentos no Google Agenda da unidade (app -> Google, mão
-// única) via uma service account do Google Cloud. Cada unidade compartilha
-// sua agenda com o e-mail da service account (permissão "Fazer alterações
-// nos eventos") e guarda o calendarId em units.google_calendar_id.
+// Espelha agendamentos no Google Agenda (app -> Google, mão única) via uma
+// service account do Google Cloud. Uma agenda só pra ambas as unidades —
+// cada evento carrega o nome da unidade no título e uma cor diferente (ver
+// unitColorId), em vez de uma agenda por unidade. A agenda compartilha
+// acesso com o e-mail da service account (permissão "Fazer alterações nos
+// eventos") e guarda o calendarId em units.google_calendar_id (mesmo valor
+// nas duas unidades).
 //
 // Sem googleapis de propósito — é uma dependência pesada pra só assinar um
 // JWT e chamar 2 endpoints REST. Usa crypto nativo do Node.
+
+// Mesma regra de "Barra Shopping" vs. resto usada em commissionRate
+// (lib/commission.ts) — mantém as cores previsíveis mesmo se outra unidade
+// for cadastrada no futuro.
+export function unitColorId(unitName: string): string {
+  const isBarraShopping = unitName.toLowerCase().includes("barra");
+  return isBarraShopping ? "9" : "11"; // 9 = Mirtilo (azul), 11 = Tomate (vermelho)
+}
 
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const CALENDAR_API = "https://www.googleapis.com/calendar/v3";
@@ -74,6 +85,7 @@ export type CalendarEventInput = {
   description: string;
   startISO: string;
   endISO: string;
+  colorId: string;
 };
 
 // Cria ou atualiza o evento; retorna o eventId (novo ou o mesmo recebido) ou
@@ -91,6 +103,7 @@ export async function upsertCalendarEvent(
       description: input.description,
       start: { dateTime: input.startISO },
       end: { dateTime: input.endISO },
+      colorId: input.colorId,
     });
 
     const url = input.eventId

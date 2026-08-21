@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin, requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { normalizePhone } from "@/lib/phone";
-import { deleteCalendarEvent, upsertCalendarEvent } from "@/lib/google-calendar";
+import { deleteCalendarEvent, unitColorId, upsertCalendarEvent } from "@/lib/google-calendar";
 
 export type AppointmentFormState = {
   error?: string;
@@ -96,46 +96,31 @@ type AppointmentCalendarSyncRow = {
   ends_at: string;
   status: string;
   google_event_id: string | null;
-  unit: { google_calendar_id: string | null } | null;
+  unit: { name: string; google_calendar_id: string | null } | null;
   collaborator: { full_name: string } | null;
 };
 
+// Uma agenda só pra ambas as unidades — o nome da unidade fica no título
+// do evento e a cor (ver unitColorId) diferencia visualmente qual é qual.
 async function syncAppointmentToCalendar(
   supabase: SupabaseServerClient,
-  appointmentId: string,
-  previous?: { unit_id: string; google_event_id: string | null }
+  appointmentId: string
 ) {
   const { data: appt } = await supabase
     .from("appointments")
     .select(
-      "unit_id, client_name, notes, starts_at, ends_at, status, google_event_id, unit:units(google_calendar_id), collaborator:profiles(full_name)"
+      "unit_id, client_name, notes, starts_at, ends_at, status, google_event_id, unit:units(name, google_calendar_id), collaborator:profiles(full_name)"
     )
     .eq("id", appointmentId)
     .single<AppointmentCalendarSyncRow>();
   if (!appt) return;
 
-  let googleEventId = appt.google_event_id;
-
-  // Unidade mudou: o evento antigo (se existir) está numa agenda diferente
-  // da nova — apaga de lá antes de criar/atualizar na nova.
-  if (previous && previous.unit_id !== appt.unit_id && previous.google_event_id) {
-    const { data: oldUnit } = await supabase
-      .from("units")
-      .select("google_calendar_id")
-      .eq("id", previous.unit_id)
-      .maybeSingle();
-    if (oldUnit?.google_calendar_id) {
-      await deleteCalendarEvent(oldUnit.google_calendar_id, previous.google_event_id);
-    }
-    googleEventId = null;
-  }
-
   const calendarId = appt.unit?.google_calendar_id;
   if (!calendarId) return;
 
   if (appt.status === "cancelado") {
-    if (googleEventId) {
-      await deleteCalendarEvent(calendarId, googleEventId);
+    if (appt.google_event_id) {
+      await deleteCalendarEvent(calendarId, appt.google_event_id);
       await supabase
         .from("appointments")
         .update({ google_event_id: null })
@@ -144,17 +129,19 @@ async function syncAppointmentToCalendar(
     return;
   }
 
+  const unitName = appt.unit?.name ?? "";
   const summary = appt.collaborator?.full_name
-    ? `${appt.client_name} — ${appt.collaborator.full_name}`
-    : appt.client_name;
+    ? `${appt.client_name} — ${appt.collaborator.full_name} (${unitName})`
+    : `${appt.client_name} (${unitName})`;
 
   const eventId = await upsertCalendarEvent({
     calendarId,
-    eventId: googleEventId,
+    eventId: appt.google_event_id,
     summary,
     description: appt.notes || "",
     startISO: appt.starts_at,
     endISO: appt.ends_at,
+    colorId: unitColorId(unitName),
   });
 
   if (eventId && eventId !== appt.google_event_id) {
@@ -278,12 +265,6 @@ export async function updateAppointment(
   }
 
   const supabase = await createClient();
-  const { data: previous } = await supabase
-    .from("appointments")
-    .select("unit_id, google_event_id")
-    .eq("id", id)
-    .maybeSingle();
-
   const client_id = await upsertClientForAppointment(
     supabase,
     parsed.data.client_name,
@@ -298,7 +279,7 @@ export async function updateAppointment(
 
   if (error) return { error: friendlyDbError(error.message) };
 
-  await syncAppointmentToCalendar(supabase, id, previous ?? undefined);
+  await syncAppointmentToCalendar(supabase, id);
 
   revalidatePath("/");
   redirect("/");
