@@ -1,8 +1,14 @@
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { AnamneseForm, Appointment, MinorAuthorizationForm } from "@/lib/types/database";
+import type {
+  AnamneseForm,
+  Appointment,
+  CoworkingAnamneseForm,
+  MinorAuthorizationForm,
+} from "@/lib/types/database";
 import { AnamneseCard } from "./anamnese-card";
+import { LanguageAnamneseCard } from "./language-anamnese-card";
 
 export default async function AgendamentoAnamnesePage(
   props: PageProps<"/agendamentos/[id]/anamnese">
@@ -36,6 +42,12 @@ export default async function AgendamentoAnamnesePage(
         .maybeSingle<MinorAuthorizationForm>()
     : { data: null };
 
+  const { data: languageForms } = await supabase
+    .from("coworking_anamnese_forms")
+    .select("*")
+    .eq("appointment_id", id)
+    .returns<CoworkingAnamneseForm[]>();
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-semibold text-white">Ficha de anamnese</h1>
@@ -44,6 +56,11 @@ export default async function AgendamentoAnamnesePage(
         clientName={appointment.client_name}
         form={form}
         minorAuth={minorAuth}
+        canGenerate={canGenerate}
+      />
+      <LanguageAnamneseCard
+        appointmentId={id}
+        forms={languageForms ?? []}
         canGenerate={canGenerate}
       />
     </div>

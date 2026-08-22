@@ -432,6 +432,9 @@ export type CoworkingAnamneseForm = {
   // um acesso de coworking — ver createStandaloneAnamneseLink).
   coworking_pass_id: string | null;
   created_by: string | null;
+  // Preenchido quando a ficha é gerada direto de um agendamento (tela
+  // /agendamentos/[id]/anamnese) — null pra fichas avulsas sem agendamento.
+  appointment_id: string | null;
   language: AnamneseLanguage;
   full_name: string;
   cpf: string;

@@ -165,3 +165,41 @@ export async function createStandaloneAnamneseLink(
   if (error || !data) return { error: "Não foi possível gerar o link." };
   return { success: true, token: data.sign_token };
 }
+
+// Mesma coisa, mas vinculada a um agendamento específico (tela
+// /agendamentos/[id]/anamnese) — aparece junto da ficha em português
+// pra qualquer colaborador, sem precisar ir pra aba Fichas.
+export async function createAppointmentAnamneseLink(
+  appointmentId: string,
+  _prevState: CreateStandaloneAnamneseState,
+  formData: FormData
+): Promise<CreateStandaloneAnamneseState> {
+  const { user } = await requireProfile();
+
+  const language = String(formData.get("language") ?? "") as AnamneseLanguage;
+  if (!["ingles", "espanhol"].includes(language)) {
+    return { error: "Selecione o idioma." };
+  }
+
+  const supabase = await createClient();
+  const { data: appt } = await supabase
+    .from("appointments")
+    .select("client_name")
+    .eq("id", appointmentId)
+    .maybeSingle();
+
+  const { data, error } = await supabase
+    .from("coworking_anamnese_forms")
+    .insert({
+      coworking_pass_id: null,
+      created_by: user.id,
+      appointment_id: appointmentId,
+      language,
+      full_name: appt?.client_name ?? "",
+    })
+    .select("sign_token")
+    .single();
+
+  if (error || !data) return { error: "Não foi possível gerar o link." };
+  return { success: true, token: data.sign_token };
+}
