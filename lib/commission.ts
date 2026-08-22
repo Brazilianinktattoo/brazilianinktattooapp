@@ -19,6 +19,13 @@ export function commissionRate(
   return clientIsOwn ? 0.7 : 0.5;
 }
 
+// Comissão sobre venda de jóia (Chefe de Piercing/Body Piercer) — separada
+// da comissão sobre serviço, sem regra automática: fica 0 até o Admin
+// definir uma taxa fixa por colaborador (profiles.commission_rate_sales).
+export function salesCommissionRate(overrideRate?: number | null): number {
+  return overrideRate ?? 0;
+}
+
 // A ficha de anamnese (quando preenchida e assinada) é a fonte preferida
 // pra origem do cliente — só cai pro checkbox do agendamento (preenchido
 // pelo staff) enquanto a ficha ainda não foi respondida pelo cliente.

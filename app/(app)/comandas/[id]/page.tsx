@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { commissionRate, resolveClientIsOwn } from "@/lib/commission";
+import { commissionRate, resolveClientIsOwn, salesCommissionRate } from "@/lib/commission";
 import type {
   ComandaProductWithRelations,
   ComandaService,
@@ -43,7 +43,7 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
   const { data: comanda } = await supabase
     .from("comandas")
     .select(
-      "*, appointment:appointments(id, client_name, starts_at, client_is_own), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role, commission_rate), unit:units(id, name)"
+      "*, appointment:appointments(id, client_name, starts_at, client_is_own), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role, commission_rate, commission_rate_sales), unit:units(id, name)"
     )
     .eq("id", id)
     .maybeSingle<ComandaWithRelations>();
@@ -130,8 +130,10 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
   const jewelryTotal = (jewelryLines ?? []).reduce((s, i) => s + i.value, 0);
   const grandTotal = servicesTotal + productsTotal + jewelryTotal;
 
-  // Comissão só incide sobre serviços (tatuagem/piercing), mesma regra do
-  // relatório e da notificação de comissão devida.
+  // Comissão sobre serviço (tatuagem/piercing) + comissão sobre venda de
+  // jóia (Chefe de Piercing/Body Piercer, taxa separada — ver
+  // lib/commission.ts) — mesma regra do relatório e da notificação de
+  // comissão devida.
   const clientIsOwn = resolveClientIsOwn(
     comanda.appointment?.client_is_own ?? false,
     anamnese?.client_origin,
@@ -142,7 +144,10 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
     clientIsOwn,
     comanda.collaborator?.commission_rate
   );
-  const computedCommission = Math.round(servicesTotal * rate * 100) / 100;
+  const salesRate = salesCommissionRate(comanda.collaborator?.commission_rate_sales);
+  const computedCommission =
+    Math.round(servicesTotal * rate * 100) / 100 +
+    Math.round(jewelryTotal * salesRate * 100) / 100;
 
   return (
     <div className="flex flex-col gap-6">

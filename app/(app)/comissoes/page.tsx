@@ -20,7 +20,9 @@ export default async function ComissoesPage() {
         <h1 className="text-xl font-semibold text-white">Comissões</h1>
         <p className="text-neutral-400">
           Defina uma taxa fixa de comissão por colaborador. Deixe em branco
-          pra usar a regra automática (por unidade e origem do cliente).
+          pra usar a regra automática. Chefe de Piercing e Body Piercer têm
+          comissão sobre serviço (perfuração) e sobre venda de jóia
+          separadas.
         </p>
       </div>
 
@@ -30,8 +32,8 @@ export default async function ComissoesPage() {
             <tr className="border-b border-gold-soft/20 text-neutral-500">
               <th className="py-3 pl-4 pr-4 font-medium">Colaborador</th>
               <th className="py-3 pr-4 font-medium">Acesso</th>
-              <th className="py-3 pr-4 font-medium">Comissão</th>
-              <th className="py-3 pr-4 font-medium">Regra</th>
+              <th className="py-3 pr-4 font-medium">Comissão sobre serviço</th>
+              <th className="py-3 pr-4 font-medium">Comissão sobre venda (jóia)</th>
             </tr>
           </thead>
           <tbody>

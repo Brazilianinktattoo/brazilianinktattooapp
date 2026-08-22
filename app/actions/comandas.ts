@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAdmin, requireProfile } from "@/lib/auth";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { feeRatePercentFor, computeChargedAmount, PAYMENT_METHOD_LABEL } from "@/lib/fees";
-import { commissionRate, resolveClientIsOwn } from "@/lib/commission";
+import { commissionRate, resolveClientIsOwn, salesCommissionRate } from "@/lib/commission";
 import { computeCommissionDeadline } from "@/lib/commission-deadline";
 import { normalizePhone } from "@/lib/phone";
 import type { CardFeeRate, ClientOrigin, PaymentMethod } from "@/lib/types/database";
@@ -245,8 +245,16 @@ export async function closeComanda(
   if (error) return { error: "Não foi possível fechar a comanda." };
 
   const servicesGross = (services ?? []).reduce((s, i) => s + i.price, 0);
+  const jewelryGross = (jewelryLines ?? []).reduce((s, i) => s + i.value, 0);
   const paidAt = new Date();
-  await notifyAdminsOfCommissionDue(supabase, comandaId, servicesGross, payment_method, paidAt);
+  await notifyAdminsOfCommissionDue(
+    supabase,
+    comandaId,
+    servicesGross,
+    jewelryGross,
+    payment_method,
+    paidAt
+  );
 
   revalidatePath(`/comandas/${comandaId}`);
   revalidatePath("/");
@@ -255,28 +263,34 @@ export async function closeComanda(
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
-// Comissão só incide sobre serviços (tatuagem/piercing) — produtos e jóias
-// ficam de fora, mesma regra do relatório de serviços. Falha aqui não pode
-// derrubar o fechamento da comanda, então é só um aviso best-effort.
+// Comissão sobre serviço (tatuagem/piercing) + comissão sobre venda de
+// jóia (Chefe de Piercing/Body Piercer, taxa separada — ver
+// lib/commission.ts); produtos ficam de fora. Falha aqui não pode derrubar
+// o fechamento da comanda, então é só um aviso best-effort.
 async function notifyAdminsOfCommissionDue(
   supabase: SupabaseServerClient,
   comandaId: string,
   servicesGross: number,
+  jewelryGross: number,
   paymentMethod: PaymentMethod,
   paidAt: Date
 ) {
-  if (servicesGross <= 0) return;
+  if (servicesGross <= 0 && jewelryGross <= 0) return;
 
   try {
     const { data: comandaInfo } = await supabase
       .from("comandas")
       .select(
-        "appointment_id, collaborator:profiles!comandas_collaborator_id_fkey(full_name, commission_rate), unit:units(name), appointment:appointments!comandas_appointment_id_fkey(client_is_own, anamnese_forms(client_origin, signed_at))"
+        "appointment_id, collaborator:profiles!comandas_collaborator_id_fkey(full_name, commission_rate, commission_rate_sales), unit:units(name), appointment:appointments!comandas_appointment_id_fkey(client_is_own, anamnese_forms(client_origin, signed_at))"
       )
       .eq("id", comandaId)
       .maybeSingle<{
         appointment_id: string;
-        collaborator: { full_name: string; commission_rate: number | null } | null;
+        collaborator: {
+          full_name: string;
+          commission_rate: number | null;
+          commission_rate_sales: number | null;
+        } | null;
         unit: { name: string } | null;
         appointment: {
           client_is_own: boolean;
@@ -296,7 +310,11 @@ async function notifyAdminsOfCommissionDue(
       clientIsOwn,
       comandaInfo.collaborator.commission_rate
     );
-    const commissionAmount = Math.round(servicesGross * rate * 100) / 100;
+    const salesRate = salesCommissionRate(comandaInfo.collaborator.commission_rate_sales);
+    const commissionAmount =
+      Math.round(servicesGross * rate * 100) / 100 +
+      Math.round(jewelryGross * salesRate * 100) / 100;
+    if (commissionAmount <= 0) return;
     const deadline = computeCommissionDeadline(paymentMethod, paidAt);
 
     const amountLabel = commissionAmount.toLocaleString("pt-BR", {
