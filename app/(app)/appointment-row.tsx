@@ -4,12 +4,17 @@ import { useTransition } from "react";
 import Link from "next/link";
 import { cancelAppointment, deleteAppointment } from "@/app/actions/agenda";
 import { openComanda } from "@/app/actions/comandas";
+import { STUDIO_TZ } from "@/lib/date";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
+// timeZone explícito é obrigatório aqui: sem ele, o servidor (UTC) e o
+// navegador do colaborador (fuso local) formatam o mesmo horário de forma
+// diferente, e o React acusa erro de hidratação nesse componente.
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("pt-BR", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: STUDIO_TZ,
   });
 }
 

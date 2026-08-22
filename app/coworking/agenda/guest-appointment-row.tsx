@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { cancelAppointment } from "@/app/actions/agenda";
+import { STUDIO_TZ } from "@/lib/date";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
 function formatWhen(iso: string) {
@@ -10,6 +11,7 @@ function formatWhen(iso: string) {
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: STUDIO_TZ,
   });
 }
 

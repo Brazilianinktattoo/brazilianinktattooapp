@@ -8,6 +8,7 @@ import {
   deleteDocumentFile,
   type UploadFileState,
 } from "@/app/actions/documents";
+import { STUDIO_TZ } from "@/lib/date";
 import type { DocumentFile } from "@/lib/types/database";
 
 const initialReplaceState: UploadFileState = {};
@@ -19,7 +20,7 @@ function formatSize(bytes: number | null) {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR");
+  return new Date(iso).toLocaleDateString("pt-BR", { timeZone: STUDIO_TZ });
 }
 
 export function FileRow({ file }: { file: DocumentFile }) {

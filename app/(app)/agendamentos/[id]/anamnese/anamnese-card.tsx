@@ -6,6 +6,7 @@ import {
   getAnamnesePdfUrl,
   type GenerateAnamneseState,
 } from "@/app/actions/anamnese";
+import { STUDIO_TZ } from "@/lib/date";
 import type { AnamneseForm, MinorAuthorizationForm } from "@/lib/types/database";
 
 const ORIGIN_LABEL: Record<string, string> = {
@@ -27,6 +28,7 @@ function formatDateTime(iso: string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: STUDIO_TZ,
   });
 }
 

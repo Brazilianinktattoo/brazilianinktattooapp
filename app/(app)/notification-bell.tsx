@@ -5,6 +5,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
 } from "@/app/actions/notifications";
+import { STUDIO_TZ } from "@/lib/date";
 import type { Notification } from "@/lib/types/database";
 
 function formatWhen(iso: string) {
@@ -13,6 +14,7 @@ function formatWhen(iso: string) {
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: STUDIO_TZ,
   });
 }
 

@@ -4,10 +4,11 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { updateClientBirthday } from "@/app/actions/clients";
 import { ViewFichaButton } from "../view-ficha-button";
+import { STUDIO_TZ } from "@/lib/date";
 import type { Client } from "@/lib/types/database";
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("pt-BR");
+  return new Date(iso).toLocaleDateString("pt-BR", { timeZone: STUDIO_TZ });
 }
 
 export function ClientRow({

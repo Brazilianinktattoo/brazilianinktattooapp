@@ -6,6 +6,7 @@ import {
   getContractFileUrl,
   type GenerateContractState,
 } from "@/app/actions/cursos";
+import { STUDIO_TZ } from "@/lib/date";
 import type { CourseContract, CourseEnrollment } from "@/lib/types/database";
 
 const initialState: GenerateContractState = {};
@@ -17,6 +18,7 @@ function formatDateTime(iso: string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: STUDIO_TZ,
   });
 }
 

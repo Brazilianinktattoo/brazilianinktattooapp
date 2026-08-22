@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { reportRevenue, revokePass } from "@/app/actions/coworking";
+import { STUDIO_TZ } from "@/lib/date";
 import type { CoworkingPassWithRelations } from "@/lib/types/database";
 
 function formatMoney(v: number) {
@@ -14,6 +15,7 @@ function formatWhen(iso: string) {
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: STUDIO_TZ,
   });
 }
 

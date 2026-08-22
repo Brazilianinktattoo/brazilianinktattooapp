@@ -5,6 +5,7 @@ import {
   createAppointmentAnamneseLink,
   type CreateStandaloneAnamneseState,
 } from "@/app/actions/coworking-anamnese";
+import { STUDIO_TZ } from "@/lib/date";
 import type { AnamneseLanguage, CoworkingAnamneseForm } from "@/lib/types/database";
 
 const initialState: CreateStandaloneAnamneseState = {};
@@ -21,6 +22,7 @@ function formatDateTime(iso: string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: STUDIO_TZ,
   });
 }
 
