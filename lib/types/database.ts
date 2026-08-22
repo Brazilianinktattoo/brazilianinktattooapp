@@ -51,6 +51,12 @@ export type Unit = {
   // ID da agenda do Google (calendarId) pra onde os agendamentos dessa
   // unidade são espelhados. null = sincronização desligada pra unidade.
   google_calendar_id: string | null;
+  // Horário de funcionamento pra agendamento de maca ("HH:MM:SS"),
+  // editável por Admin em /macas. Fora desse intervalo (ou aos domingos)
+  // ninguém além do Admin consegue agendar maca — reforçado no banco pela
+  // trigger enforce_appointment_rules.
+  opens_at: string;
+  closes_at: string;
   created_at: string;
   updated_at: string;
 };
@@ -452,7 +458,7 @@ export type CoworkingPass = {
 };
 
 export type CoworkingPassWithRelations = CoworkingPass & {
-  unit: Pick<Unit, "id" | "name"> | null;
+  unit: Pick<Unit, "id" | "name" | "opens_at" | "closes_at"> | null;
   maca: Pick<Maca, "id" | "label"> | null;
 };
 

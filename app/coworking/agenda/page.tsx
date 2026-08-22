@@ -2,12 +2,14 @@ import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { guestLogout } from "@/app/actions/coworking";
+import { freeRangesInWindow } from "@/lib/business-hours";
 import type {
   AppointmentWithRelations,
   CoworkingPassWithRelations,
 } from "@/lib/types/database";
 import { GuestAppointmentForm } from "./guest-appointment-form";
 import { GuestAppointmentRow } from "./guest-appointment-row";
+import { GuestAvailability } from "./guest-availability";
 
 function formatWhen(iso: string) {
   return new Date(iso).toLocaleString("pt-BR", {
@@ -40,7 +42,7 @@ export default async function CoworkingAgendaPage() {
 
   const { data: pass } = await supabase
     .from("coworking_passes")
-    .select("*, unit:units(id, name), maca:macas(id, label)")
+    .select("*, unit:units(id, name, opens_at, closes_at), maca:macas(id, label)")
     .eq("profile_id", user.id)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -64,6 +66,17 @@ export default async function CoworkingAgendaPage() {
     .returns<AppointmentWithRelations[]>();
 
   const list = appointments ?? [];
+  const busy = list.filter((a) => a.status === "confirmado");
+  const freeDays =
+    !expired && pass.unit
+      ? freeRangesInWindow(
+          pass.starts_at,
+          pass.ends_at,
+          pass.unit.opens_at,
+          pass.unit.closes_at,
+          busy
+        )
+      : [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -93,13 +106,16 @@ export default async function CoworkingAgendaPage() {
           mais tempo.
         </div>
       ) : (
-        <GuestAppointmentForm
-          collaboratorId={user.id}
-          unitId={pass.unit_id}
-          macaId={pass.maca_id}
-          minDate={pass.starts_at}
-          maxDate={pass.ends_at}
-        />
+        <>
+          <GuestAvailability days={freeDays} />
+          <GuestAppointmentForm
+            collaboratorId={user.id}
+            unitId={pass.unit_id}
+            macaId={pass.maca_id}
+            minDate={pass.starts_at}
+            maxDate={pass.ends_at}
+          />
+        </>
       )}
 
       <div className="flex flex-col gap-2">

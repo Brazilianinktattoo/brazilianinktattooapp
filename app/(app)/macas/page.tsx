@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Maca, Unit } from "@/lib/types/database";
 import { NewMacaForm } from "./new-maca-form";
 import { MacaRow } from "./maca-row";
+import { UnitHoursEditor } from "./unit-hours-editor";
 
 export default async function MacasPage() {
   await requireAdmin();
@@ -29,7 +30,14 @@ export default async function MacasPage() {
         const unitMacas = (macas ?? []).filter((m) => m.unit_id === unit.id);
         return (
           <div key={unit.id} className="flex flex-col gap-2">
-            <h2 className="font-semibold text-white">{unit.name}</h2>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-semibold text-white">{unit.name}</h2>
+              <UnitHoursEditor
+                unitId={unit.id}
+                opensAt={unit.opens_at}
+                closesAt={unit.closes_at}
+              />
+            </div>
             <div className="overflow-x-auto rounded-xl border border-neutral-800">
               <table className="w-full min-w-[360px] text-left text-sm">
                 <thead>

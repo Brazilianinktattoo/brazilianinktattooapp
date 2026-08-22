@@ -37,6 +37,15 @@ function friendlyDbError(message: string): string {
   if (message.includes("periodo reservado")) {
     return "Esse horário está fora do período reservado para o seu acesso.";
   }
+  if (message.includes("nao funciona aos domingos")) {
+    return "O estúdio não funciona aos domingos — escolha outro dia.";
+  }
+  if (message.includes("atravessar a meia-noite")) {
+    return "O agendamento de maca não pode atravessar a meia-noite.";
+  }
+  if (message.includes("funcionamento da unidade")) {
+    return "Esse horário está fora do funcionamento da unidade.";
+  }
   return "Não foi possível salvar o agendamento. Confira os dados e tente de novo.";
 }
 
@@ -418,4 +427,22 @@ export async function renameMaca(id: string, label: string) {
   await supabase.from("macas").update({ label: label.trim() }).eq("id", id);
   revalidatePath("/macas");
   revalidatePath("/");
+}
+
+const TIME_RE = /^\d{2}:\d{2}$/;
+
+// Horário de funcionamento da unidade pra agendamento de maca — reforçado
+// no banco pela trigger enforce_appointment_rules (fora do horário, só
+// Admin consegue agendar).
+export async function updateUnitHours(unitId: string, opensAt: string, closesAt: string) {
+  await requireAdmin();
+  if (!TIME_RE.test(opensAt) || !TIME_RE.test(closesAt)) return;
+  if (opensAt >= closesAt) return;
+
+  const supabase = await createClient();
+  await supabase
+    .from("units")
+    .update({ opens_at: opensAt, closes_at: closesAt })
+    .eq("id", unitId);
+  revalidatePath("/macas");
 }

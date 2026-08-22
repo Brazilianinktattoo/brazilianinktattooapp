@@ -148,11 +148,16 @@ export async function openComandaFromClient(
     .single();
 
   if (appointmentError || !appointment) {
-    return {
-      error: appointmentError?.message.includes("maca")
-        ? "Maca inválida pra esse profissional/unidade."
-        : "Não foi possível abrir a comanda.",
-    };
+    const msg = appointmentError?.message ?? "";
+    let friendlyError = "Não foi possível abrir a comanda.";
+    if (msg.includes("nao funciona aos domingos")) {
+      friendlyError = "O estúdio não funciona aos domingos.";
+    } else if (msg.includes("funcionamento da unidade")) {
+      friendlyError = "Fora do horário de funcionamento da unidade — só Admin pode abrir comanda agora.";
+    } else if (msg.includes("maca")) {
+      friendlyError = "Maca inválida pra esse profissional/unidade.";
+    }
+    return { error: friendlyError };
   }
 
   const { data: comanda, error: comandaError } = await supabase

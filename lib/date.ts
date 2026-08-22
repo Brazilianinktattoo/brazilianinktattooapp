@@ -2,11 +2,19 @@
 // servidor roda em outro fuso (ex: UTC em produção). Seguro porque o Brasil
 // não tem mais horário de verão (offset -03:00 é constante o ano todo).
 export const STUDIO_TZ = "America/Sao_Paulo";
-const STUDIO_OFFSET = "-03:00";
+export const STUDIO_OFFSET = "-03:00";
 
 export function todayParam() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: STUDIO_TZ }).format(
     new Date()
+  );
+}
+
+// "YYYY-MM-DD" do dia local (fuso do estúdio) em que um instante cai —
+// mesma técnica do todayParam(), mas pra um instante arbitrário.
+export function dateParamFromISO(iso: string) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: STUDIO_TZ }).format(
+    new Date(iso)
   );
 }
 
