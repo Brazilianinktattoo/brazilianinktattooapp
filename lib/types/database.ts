@@ -26,6 +26,9 @@ export type Profile = {
   birthday: string | null;
   address: string | null;
   cpf: string | null;
+  // WhatsApp pra receber avisos de agendamento/comanda em tempo real (WAME
+  // API) — opcional; sem número, o colaborador só recebe o sininho no app.
+  whatsapp_phone: string | null;
   // Aparece na lista de profissionais da Ficha de Anamnese com URL fixa
   // (QR Code) — só Admin edita quem entra nessa lista.
   qr_anamnese_enabled: boolean;

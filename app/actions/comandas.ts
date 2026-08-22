@@ -8,6 +8,7 @@ import { feeRatePercentFor, computeChargedAmount, PAYMENT_METHOD_LABEL } from "@
 import { commissionRate, resolveClientIsOwn, salesCommissionRate } from "@/lib/commission";
 import { computeCommissionDeadline } from "@/lib/commission-deadline";
 import { normalizePhone } from "@/lib/phone";
+import { sendWhatsAppMessage } from "@/lib/whatsapp/wame-client";
 import type { CardFeeRate, ClientOrigin, PaymentMethod } from "@/lib/types/database";
 
 export async function openComanda(formData: FormData) {
@@ -298,7 +299,7 @@ async function notifyAdminsOfComandaOpened(
     const admin = createAdminClient();
     const { data: admins } = await admin
       .from("profiles")
-      .select("id")
+      .select("id, whatsapp_phone")
       .eq("role", "admin")
       .eq("active", true);
 
@@ -310,6 +311,14 @@ async function notifyAdminsOfComandaOpened(
         appointment_id: info.appointment_id,
         message,
       }))
+    );
+
+    // Envio imediato (não pela fila diária do cron) — best-effort, uma
+    // falha de WhatsApp não afeta o sininho nem a abertura da comanda.
+    await Promise.all(
+      admins
+        .filter((a) => a.whatsapp_phone)
+        .map((a) => sendWhatsAppMessage(a.whatsapp_phone!, message).catch(() => null))
     );
   } catch {
     // best-effort — não deixa um erro de notificação impedir a abertura

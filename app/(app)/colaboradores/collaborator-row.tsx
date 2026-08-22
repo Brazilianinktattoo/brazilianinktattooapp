@@ -8,6 +8,7 @@ import {
   updateCollaboratorBirthday,
   updateCollaboratorAddress,
   updateCollaboratorCpf,
+  updateCollaboratorWhatsapp,
   setCollaboratorActive,
   resetCollaboratorPassword,
   deleteCollaborator,
@@ -50,6 +51,7 @@ export function CollaboratorRow({
   const [birthday, setBirthday] = useState(profile.birthday ?? "");
   const [address, setAddress] = useState(profile.address ?? "");
   const [cpf, setCpf] = useState(profile.cpf ?? "");
+  const [whatsapp, setWhatsapp] = useState(profile.whatsapp_phone ?? "");
   const [qrEnabled, setQrEnabled] = useState(profile.qr_anamnese_enabled);
   const [pending, startTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -126,7 +128,7 @@ export function CollaboratorRow({
         </details>
         <details className="mt-1 text-xs">
           <summary className="cursor-pointer text-neutral-500 hover:text-white">
-            Endereço / CPF
+            Endereço / CPF{role === "admin" ? " / WhatsApp" : ""}
           </summary>
           <div className="mt-2 flex flex-col gap-2">
             <input
@@ -153,6 +155,20 @@ export function CollaboratorRow({
               }}
               className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 outline-none focus:border-gold disabled:opacity-60"
             />
+            {role === "admin" && (
+              <input
+                value={whatsapp}
+                disabled={pending}
+                placeholder="WhatsApp p/ avisos (agendamento/comanda)"
+                onChange={(e) => setWhatsapp(e.target.value)}
+                onBlur={() => {
+                  if (whatsapp !== (profile.whatsapp_phone ?? "")) {
+                    startTransition(() => updateCollaboratorWhatsapp(profile.id, whatsapp));
+                  }
+                }}
+                className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 outline-none focus:border-gold disabled:opacity-60"
+              />
+            )}
           </div>
         </details>
       </td>

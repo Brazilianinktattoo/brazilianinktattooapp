@@ -6,6 +6,7 @@ import { requireAdmin, requireProfile } from "@/lib/auth";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { normalizePhone } from "@/lib/phone";
 import { deleteCalendarEvent, unitColorId, upsertCalendarEvent } from "@/lib/google-calendar";
+import { sendWhatsAppMessage } from "@/lib/whatsapp/wame-client";
 
 export type AppointmentFormState = {
   error?: string;
@@ -69,7 +70,7 @@ async function notifyAdminsOfAppointmentCreated(
     const admin = createAdminClient();
     const { data: admins } = await admin
       .from("profiles")
-      .select("id")
+      .select("id, whatsapp_phone")
       .eq("role", "admin")
       .eq("active", true);
 
@@ -81,6 +82,14 @@ async function notifyAdminsOfAppointmentCreated(
         appointment_id: appointmentId,
         message,
       }))
+    );
+
+    // Envio imediato (não pela fila diária do cron) — best-effort, uma
+    // falha de WhatsApp não afeta o sininho nem o agendamento.
+    await Promise.all(
+      admins
+        .filter((a) => a.whatsapp_phone)
+        .map((a) => sendWhatsAppMessage(a.whatsapp_phone!, message).catch(() => null))
     );
   } catch {
     // best-effort — não deixa um erro de notificação impedir o agendamento

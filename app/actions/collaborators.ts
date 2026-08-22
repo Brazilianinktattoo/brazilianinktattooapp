@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin, requireAdminOrChefePiercing } from "@/lib/auth";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { normalizePhone } from "@/lib/phone";
 import type { UserRole } from "@/lib/types/database";
 
 export type CreateCollaboratorState = {
@@ -37,6 +38,7 @@ export async function createCollaborator(
   const password = String(formData.get("password") ?? "");
   const address = String(formData.get("address") ?? "").trim();
   const cpf = String(formData.get("cpf") ?? "").trim();
+  const whatsapp = normalizePhone(String(formData.get("whatsapp") ?? ""));
   const role = isChefePiercing
     ? "piercer"
     : (String(formData.get("role") ?? "") as UserRole);
@@ -67,12 +69,16 @@ export async function createCollaborator(
     };
   }
 
-  // Endereço/CPF não fazem parte do trigger handle_new_user (só
+  // Endereço/CPF/WhatsApp não fazem parte do trigger handle_new_user (só
   // full_name/email/role) — completa com um update logo em seguida.
-  if (data.user && (address || cpf)) {
+  if (data.user && (address || cpf || whatsapp)) {
     await admin
       .from("profiles")
-      .update({ address: address || null, cpf: cpf || null })
+      .update({
+        address: address || null,
+        cpf: cpf || null,
+        whatsapp_phone: whatsapp || null,
+      })
       .eq("id", data.user.id);
   }
 
@@ -128,6 +134,20 @@ export async function updateCollaboratorCpf(id: string, cpf: string) {
   await supabase
     .from("profiles")
     .update({ cpf: cpf.trim() || null })
+    .eq("id", id);
+  revalidatePath("/colaboradores");
+}
+
+export async function updateCollaboratorWhatsapp(id: string, phone: string) {
+  const { profile } = await requireAdminOrChefePiercing();
+  if (profile.role === "chefe_piercing") {
+    if ((await getTargetRole(id)) !== "piercer") return;
+  }
+
+  const supabase = await createClient();
+  await supabase
+    .from("profiles")
+    .update({ whatsapp_phone: normalizePhone(phone) || null })
     .eq("id", id);
   revalidatePath("/colaboradores");
 }

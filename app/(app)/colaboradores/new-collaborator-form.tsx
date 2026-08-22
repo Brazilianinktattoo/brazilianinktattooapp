@@ -99,6 +99,20 @@ export function NewCollaboratorForm({
         />
       </div>
 
+      {!restrictToPiercer && (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="whatsapp" className="text-sm text-neutral-300">
+            WhatsApp p/ avisos (opcional, só se for Admin)
+          </label>
+          <input
+            id="whatsapp"
+            name="whatsapp"
+            placeholder="Ex: 11 95550-1001"
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+          />
+        </div>
+      )}
+
       {restrictToPiercer ? (
         <div className="flex flex-col gap-1.5">
           <span className="text-sm text-neutral-300">Nível de acesso</span>
