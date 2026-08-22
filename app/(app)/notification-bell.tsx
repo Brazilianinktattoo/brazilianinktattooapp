@@ -53,9 +53,9 @@ export function NotificationBell({
             onClick={() => setOpen(false)}
             className="fixed inset-0 z-10 cursor-default"
           />
-          <div className="absolute right-0 z-20 mt-2 w-80 rounded-xl border border-neutral-800 bg-neutral-900 shadow-xl">
-            <div className="flex items-center justify-between border-b border-neutral-800 px-4 py-2.5">
-              <span className="text-sm font-medium text-neutral-200">
+          <div className="absolute right-0 z-20 mt-2 w-80 rounded-xl border border-gold bg-white shadow-xl">
+            <div className="flex items-center justify-between rounded-t-xl border-b border-gold-soft/40 bg-gradient-to-b from-gold-strong to-gold px-4 py-2.5">
+              <span className="text-sm font-semibold text-neutral-950">
                 Notificações
               </span>
               {unreadCount > 0 && (
@@ -65,7 +65,7 @@ export function NotificationBell({
                     setItems((prev) => prev.map((n) => ({ ...n, read: true })));
                     startTransition(() => markAllNotificationsRead());
                   }}
-                  className="text-xs text-neutral-500 hover:text-white"
+                  className="text-xs font-medium text-neutral-950/70 hover:text-neutral-950"
                 >
                   Marcar todas como lidas
                 </button>
@@ -89,11 +89,11 @@ export function NotificationBell({
                     );
                     startTransition(() => markNotificationRead(n.id));
                   }}
-                  className={`block w-full border-b border-neutral-800 px-4 py-2.5 text-left last:border-b-0 hover:bg-neutral-800/60 ${
-                    n.read ? "opacity-50" : ""
+                  className={`block w-full border-b border-neutral-200 px-4 py-2.5 text-left last:border-b-0 hover:bg-amber-50 ${
+                    n.read ? "bg-white opacity-60" : "bg-amber-50/60"
                   }`}
                 >
-                  <p className="text-sm text-neutral-200">{n.message}</p>
+                  <p className="text-sm text-neutral-900">{n.message}</p>
                   <p className="mt-0.5 text-xs text-neutral-500">
                     {formatWhen(n.created_at)}
                   </p>
