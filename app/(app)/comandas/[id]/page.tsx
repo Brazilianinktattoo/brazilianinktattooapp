@@ -142,7 +142,8 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
   const rate = commissionRate(
     comanda.unit?.name ?? "",
     clientIsOwn,
-    comanda.collaborator?.commission_rate
+    comanda.collaborator?.commission_rate,
+    !isPiercingComanda
   );
   const salesRate = salesCommissionRate(comanda.collaborator?.commission_rate_sales);
   const computedCommission =

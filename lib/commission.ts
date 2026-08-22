@@ -1,6 +1,8 @@
 import type { ClientOrigin } from "@/lib/types/database";
 
-// Regra de comissão do estúdio:
+// Regra de comissão do estúdio (só pra Tatuador/Admin — Chefe de
+// Piercing/Body Piercer ganham a mesma comissão em qualquer unidade, sem
+// regra automática, ver useAutomaticRule abaixo):
 //   Barra Shopping — sempre 50% pro colaborador, linear.
 //   Downtown       — 70% se o cliente é próprio do colaborador (ele que
 //                     trouxe), 50% se veio pelo estúdio.
@@ -11,9 +13,11 @@ import type { ClientOrigin } from "@/lib/types/database";
 export function commissionRate(
   unitName: string,
   clientIsOwn: boolean,
-  overrideRate?: number | null
+  overrideRate?: number | null,
+  useAutomaticRule: boolean = true
 ): number {
   if (overrideRate !== null && overrideRate !== undefined) return overrideRate;
+  if (!useAutomaticRule) return 0;
   const isBarraShopping = unitName.toLowerCase().includes("barra");
   if (isBarraShopping) return 0.5;
   return clientIsOwn ? 0.7 : 0.5;

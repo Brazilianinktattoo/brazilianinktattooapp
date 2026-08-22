@@ -21,9 +21,11 @@ function percentString(rate: number | null): string {
 function RateInput({
   initialPercent,
   onSave,
+  clearLabel = "Automático",
 }: {
   initialPercent: string;
   onSave: (percent: string) => void;
+  clearLabel?: string;
 }) {
   const [percent, setPercent] = useState(initialPercent);
   const [pending, startTransition] = useTransition();
@@ -59,7 +61,7 @@ function RateInput({
           }}
           className="text-xs text-neutral-500 hover:text-gold disabled:opacity-60"
         >
-          Automático
+          {clearLabel}
         </button>
       )}
     </div>
@@ -80,6 +82,7 @@ export function ComissaoRow({ profile }: { profile: Profile }) {
       <td className="py-3 pr-4">
         <RateInput
           initialPercent={percentString(profile.commission_rate)}
+          clearLabel={isPiercingRole ? "Sem comissão" : "Automático"}
           onSave={(percent) =>
             updateCollaboratorCommissionRate(
               profile.id,
@@ -90,7 +93,9 @@ export function ComissaoRow({ profile }: { profile: Profile }) {
         <p className="mt-1 text-xs text-neutral-500">
           {profile.commission_rate !== null
             ? "Taxa fixa"
-            : "Automático (50% Barra Shopping; 70%/50% Downtown)"}
+            : isPiercingRole
+              ? "Sem comissão até definir — mesma taxa em qualquer unidade"
+              : "Automático (50% Barra Shopping; 70%/50% Downtown)"}
         </p>
       </td>
       <td className="py-3 pr-4">
@@ -98,6 +103,7 @@ export function ComissaoRow({ profile }: { profile: Profile }) {
           <>
             <RateInput
               initialPercent={percentString(profile.commission_rate_sales)}
+              clearLabel="Sem comissão"
               onSave={(percent) =>
                 updateCollaboratorSalesCommissionRate(
                   profile.id,

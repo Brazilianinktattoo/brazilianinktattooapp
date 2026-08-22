@@ -281,13 +281,14 @@ async function notifyAdminsOfCommissionDue(
     const { data: comandaInfo } = await supabase
       .from("comandas")
       .select(
-        "appointment_id, collaborator:profiles!comandas_collaborator_id_fkey(full_name, commission_rate, commission_rate_sales), unit:units(name), appointment:appointments!comandas_appointment_id_fkey(client_is_own, anamnese_forms(client_origin, signed_at))"
+        "appointment_id, collaborator:profiles!comandas_collaborator_id_fkey(full_name, role, commission_rate, commission_rate_sales), unit:units(name), appointment:appointments!comandas_appointment_id_fkey(client_is_own, anamnese_forms(client_origin, signed_at))"
       )
       .eq("id", comandaId)
       .maybeSingle<{
         appointment_id: string;
         collaborator: {
           full_name: string;
+          role: string;
           commission_rate: number | null;
           commission_rate_sales: number | null;
         } | null;
@@ -305,10 +306,14 @@ async function notifyAdminsOfCommissionDue(
       comandaInfo.appointment?.anamnese_forms?.client_origin,
       comandaInfo.appointment?.anamnese_forms?.signed_at
     );
+    const isPiercingRole =
+      comandaInfo.collaborator.role === "piercer" ||
+      comandaInfo.collaborator.role === "chefe_piercing";
     const rate = commissionRate(
       comandaInfo.unit.name,
       clientIsOwn,
-      comandaInfo.collaborator.commission_rate
+      comandaInfo.collaborator.commission_rate,
+      !isPiercingRole
     );
     const salesRate = salesCommissionRate(comandaInfo.collaborator.commission_rate_sales);
     const commissionAmount =

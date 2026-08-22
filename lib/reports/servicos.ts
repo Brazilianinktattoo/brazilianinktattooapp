@@ -93,7 +93,14 @@ export async function fetchServiceReportLines(
       anamnese?.client_origin,
       anamnese?.signed_at
     );
-    const rate = commissionRate(unitName, clientIsOwn, c.collaborator?.commission_rate);
+    const isPiercingRole =
+      c.collaborator?.role === "piercer" || c.collaborator?.role === "chefe_piercing";
+    const rate = commissionRate(
+      unitName,
+      clientIsOwn,
+      c.collaborator?.commission_rate,
+      !isPiercingRole
+    );
     for (const s of c.comanda_services ?? []) {
       lines.push({
         comandaId: c.id,

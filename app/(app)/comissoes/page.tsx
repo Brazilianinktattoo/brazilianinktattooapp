@@ -19,10 +19,11 @@ export default async function ComissoesPage() {
       <div>
         <h1 className="text-xl font-semibold text-white">Comissões</h1>
         <p className="text-neutral-400">
-          Defina uma taxa fixa de comissão por colaborador. Deixe em branco
-          pra usar a regra automática. Chefe de Piercing e Body Piercer têm
-          comissão sobre serviço (perfuração) e sobre venda de jóia
-          separadas.
+          Defina uma taxa fixa de comissão por colaborador. Tatuador/Admin:
+          deixe em branco pra usar a regra automática por unidade. Chefe de
+          Piercing e Body Piercer: comissão sobre serviço (perfuração) e
+          sobre venda de jóia separadas, a mesma em qualquer unidade — sem
+          taxa definida, fica sem comissão.
         </p>
       </div>
 
