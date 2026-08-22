@@ -1,6 +1,6 @@
 "use server";
 
-import { createAdminClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { requireProfile } from "@/lib/auth";
 import { STUDIO_TZ } from "@/lib/date";
 import {
@@ -127,4 +127,41 @@ export async function getCoworkingAnamnesePdfUrl(filePath: string) {
   const admin = createAdminClient();
   const { data } = await admin.storage.from("documentos").createSignedUrl(filePath, 60 * 10);
   return data?.signedUrl ?? null;
+}
+
+export type CreateStandaloneAnamneseState = {
+  error?: string;
+  success?: boolean;
+  token?: string;
+};
+
+// Ficha em inglês/espanhol gerada direto por qualquer colaborador (não só
+// Admin/Chefe de Piercing), sem depender de um acesso de coworking —
+// mesmo PDF/idiomas/assinatura, só sem coworking_pass_id.
+export async function createStandaloneAnamneseLink(
+  _prevState: CreateStandaloneAnamneseState,
+  formData: FormData
+): Promise<CreateStandaloneAnamneseState> {
+  const { user } = await requireProfile();
+
+  const language = String(formData.get("language") ?? "") as AnamneseLanguage;
+  if (!["ingles", "espanhol"].includes(language)) {
+    return { error: "Selecione o idioma." };
+  }
+  const full_name = String(formData.get("full_name") ?? "").trim();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("coworking_anamnese_forms")
+    .insert({
+      coworking_pass_id: null,
+      created_by: user.id,
+      language,
+      full_name,
+    })
+    .select("sign_token")
+    .single();
+
+  if (error || !data) return { error: "Não foi possível gerar o link." };
+  return { success: true, token: data.sign_token };
 }

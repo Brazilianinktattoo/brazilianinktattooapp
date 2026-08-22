@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { FormText } from "@/lib/types/database";
 import { FormTextEditor } from "./form-text-editor";
 import { StudentAnamneseGenerator } from "./student-anamnese-generator";
+import { StandaloneAnamneseGenerator } from "./standalone-anamnese-generator";
 import { QrLinkCard } from "./qr-link-card";
 
 export default async function FichasPage() {
@@ -76,20 +77,15 @@ export default async function FichasPage() {
           </div>
         )}
 
-        <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
+        <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 sm:col-span-2">
           <h2 className="font-medium text-white">
-            Ficha de Anamnese Tatuagem — Inglês / Espanhol
+            Ficha de Anamnese — Inglês / Espanhol
           </h2>
           <p className="text-sm text-neutral-400">
-            Pra tatuadores/piercers visitantes do coworking — o link já sai
-            pronto ao criar o acesso, e o próprio visitante escolhe o idioma.
+            Pra cliente estrangeiro — gere o link na hora, sem precisar de um
+            acesso de coworking.
           </p>
-          <Link
-            href="/coworking"
-            className="mt-auto self-start rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-200 hover:border-gold-soft hover:text-gold"
-          >
-            Ir para Coworking
-          </Link>
+          <StandaloneAnamneseGenerator />
         </div>
 
         <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">

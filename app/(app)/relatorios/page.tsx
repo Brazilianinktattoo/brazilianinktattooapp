@@ -247,6 +247,16 @@ export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
             </p>
           </Link>
           <Link
+            href="/relatorios/desempenho"
+            className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 transition hover:border-neutral-600"
+          >
+            <h2 className="font-semibold text-white">Desempenho →</h2>
+            <p className="mt-1 text-sm text-neutral-400">
+              Ranking de colaboradores, jóias e serviços mais vendidos,
+              faturamento por loja e movimento por dia — diário a anual.
+            </p>
+          </Link>
+          <Link
             href="/relatorios/barra-shopping"
             className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 transition hover:border-neutral-600"
           >

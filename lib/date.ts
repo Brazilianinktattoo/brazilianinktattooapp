@@ -52,6 +52,38 @@ export function shiftDate(dateParam: string, days: number) {
   return d.toISOString().slice(0, 10);
 }
 
+// Domingo (dia 0) da semana em que dateParam cai — mesma convenção de
+// "semana começa domingo" usada em monthGridDays.
+export function weekStartParam(dateParam: string) {
+  const d = new Date(`${dateParam}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - d.getUTCDay());
+  return d.toISOString().slice(0, 10);
+}
+
+export function weekBounds(dateParam: string) {
+  const startParam = weekStartParam(dateParam);
+  const start = new Date(`${startParam}T00:00:00${STUDIO_OFFSET}`);
+  const end = new Date(`${startParam}T00:00:00${STUDIO_OFFSET}`);
+  end.setUTCDate(end.getUTCDate() + 7);
+  return { start, end };
+}
+
+export function shiftWeek(dateParam: string, weeks: number) {
+  return shiftDate(dateParam, weeks * 7);
+}
+
+export function formatWeekLabel(dateParam: string) {
+  const startParam = weekStartParam(dateParam);
+  const endParam = shiftDate(startParam, 6);
+  const fmt = (p: string) =>
+    new Date(`${p}T12:00:00Z`).toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      timeZone: STUDIO_TZ,
+    });
+  return `${fmt(startParam)} – ${fmt(endParam)}`;
+}
+
 // "YYYY-MM-DD" -> "YYYY-MM" / "YYYY" — usado pra achar o mês/ano corrente
 // ao entrar nas visões de agenda por mês/ano.
 export function monthOf(dateParam: string) {

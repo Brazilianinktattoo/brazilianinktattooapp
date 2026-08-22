@@ -428,7 +428,10 @@ export type MinorAuthorizationForm = {
 
 export type CoworkingAnamneseForm = {
   id: string;
-  coworking_pass_id: string;
+  // null = ficha avulsa (gerada direto por um colaborador, sem passar por
+  // um acesso de coworking — ver createStandaloneAnamneseLink).
+  coworking_pass_id: string | null;
+  created_by: string | null;
   language: AnamneseLanguage;
   full_name: string;
   cpf: string;
@@ -734,7 +737,6 @@ export type Database = {
       coworking_anamnese_forms: {
         Row: CoworkingAnamneseForm;
         Insert: Partial<CoworkingAnamneseForm> & {
-          coworking_pass_id: string;
           language: AnamneseLanguage;
         };
         Update: Partial<CoworkingAnamneseForm>;
