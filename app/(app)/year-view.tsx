@@ -18,16 +18,29 @@ const MONTH_LABELS = [
   "Dezembro",
 ];
 
-export async function YearView({ yearParam }: { yearParam: string }) {
+export async function YearView({
+  yearParam,
+  basePath = "/agenda",
+  title = "Agenda",
+  macaOnly = false,
+}: {
+  yearParam: string;
+  basePath?: string;
+  title?: string;
+  macaOnly?: boolean;
+}) {
   const { start, end } = yearBounds(yearParam);
 
   const supabase = await createClient();
-  const { data: appointments } = await supabase
+  let query = supabase
     .from("appointments")
     .select("starts_at, status")
     .gte("starts_at", start.toISOString())
-    .lt("starts_at", end.toISOString())
-    .returns<Pick<Appointment, "starts_at" | "status">[]>();
+    .lt("starts_at", end.toISOString());
+  if (macaOnly) query = query.not("maca_id", "is", null);
+  const { data: appointments } = await query.returns<
+    Pick<Appointment, "starts_at" | "status">[]
+  >();
 
   const countByMonth = new Map<number, { total: number; ativos: number }>();
   for (const appt of appointments ?? []) {
@@ -47,24 +60,24 @@ export async function YearView({ yearParam }: { yearParam: string }) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-white">Agenda — Ano</h1>
+          <h1 className="text-xl font-semibold text-white">{title} — Ano</h1>
           <p className="text-neutral-400">{yearParam}</p>
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href={`/agenda?view=ano&year=${shiftYear(yearParam, -1)}`}
+            href={`${basePath}?view=ano&year=${shiftYear(yearParam, -1)}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             ← Anterior
           </Link>
           <Link
-            href={`/agenda?view=ano&year=${todayParam().slice(0, 4)}`}
+            href={`${basePath}?view=ano&year=${todayParam().slice(0, 4)}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Hoje
           </Link>
           <Link
-            href={`/agenda?view=ano&year=${shiftYear(yearParam, 1)}`}
+            href={`${basePath}?view=ano&year=${shiftYear(yearParam, 1)}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Próximo →
@@ -81,7 +94,7 @@ export async function YearView({ yearParam }: { yearParam: string }) {
           return (
             <Link
               key={label}
-              href={`/agenda?view=mes&month=${monthValue}`}
+              href={`${basePath}?view=mes&month=${monthValue}`}
               className={`rounded-xl border bg-neutral-900/40 p-4 transition hover:border-gold-soft ${
                 isCurrentMonth ? "border-gold" : "border-neutral-800"
               }`}

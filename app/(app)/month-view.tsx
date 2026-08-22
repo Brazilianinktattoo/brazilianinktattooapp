@@ -13,16 +13,29 @@ import {
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-export async function MonthView({ monthParam }: { monthParam: string }) {
+export async function MonthView({
+  monthParam,
+  basePath = "/agenda",
+  title = "Agenda",
+  macaOnly = false,
+}: {
+  monthParam: string;
+  basePath?: string;
+  title?: string;
+  macaOnly?: boolean;
+}) {
   const { start, end } = monthBounds(monthParam);
 
   const supabase = await createClient();
-  const { data: appointments } = await supabase
+  let query = supabase
     .from("appointments")
     .select("starts_at, status")
     .gte("starts_at", start.toISOString())
-    .lt("starts_at", end.toISOString())
-    .returns<Pick<Appointment, "starts_at" | "status">[]>();
+    .lt("starts_at", end.toISOString());
+  if (macaOnly) query = query.not("maca_id", "is", null);
+  const { data: appointments } = await query.returns<
+    Pick<Appointment, "starts_at" | "status">[]
+  >();
 
   const countByDay = new Map<string, { total: number; ativos: number }>();
   for (const appt of appointments ?? []) {
@@ -42,26 +55,26 @@ export async function MonthView({ monthParam }: { monthParam: string }) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-white">Agenda — Mês</h1>
+          <h1 className="text-xl font-semibold text-white">{title} — Mês</h1>
           <p className="text-neutral-400 capitalize">
             {formatMonthLabel(monthParam)}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Link
-            href={`/agenda?view=mes&month=${shiftMonth(monthParam, -1)}`}
+            href={`${basePath}?view=mes&month=${shiftMonth(monthParam, -1)}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             ← Anterior
           </Link>
           <Link
-            href={`/agenda?view=mes&month=${monthOf(todayParam())}`}
+            href={`${basePath}?view=mes&month=${monthOf(todayParam())}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Hoje
           </Link>
           <Link
-            href={`/agenda?view=mes&month=${shiftMonth(monthParam, 1)}`}
+            href={`${basePath}?view=mes&month=${shiftMonth(monthParam, 1)}`}
             className="rounded-lg border border-neutral-700 px-3 py-1.5 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
           >
             Próximo →
@@ -84,7 +97,7 @@ export async function MonthView({ monthParam }: { monthParam: string }) {
           return (
             <Link
               key={dayParam}
-              href={`/agenda?date=${dayParam}`}
+              href={`${basePath}?date=${dayParam}`}
               className={`flex min-h-20 flex-col gap-1 rounded-lg border p-2 text-left transition hover:border-gold-soft ${
                 inMonth
                   ? "border-neutral-800 bg-neutral-900/40"

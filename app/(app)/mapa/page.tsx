@@ -1,8 +1,19 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { dayBounds, formatDateLabel, shiftDate, todayParam } from "@/lib/date";
+import {
+  dayBounds,
+  formatDateLabel,
+  monthOf,
+  shiftDate,
+  todayParam,
+  yearOf,
+} from "@/lib/date";
+import { MonthView } from "../month-view";
+import { YearView } from "../year-view";
 import type { AppointmentWithRelations, Maca, Unit } from "@/lib/types/database";
+
+type MapaViewKey = "dia" | "mes" | "ano";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
@@ -19,12 +30,7 @@ function formatTime(iso: string) {
   });
 }
 
-export default async function MapaPage(props: PageProps<"/mapa">) {
-  const searchParams = await props.searchParams;
-  await requireAdmin();
-
-  const dateParam =
-    typeof searchParams.date === "string" ? searchParams.date : todayParam();
+async function MapaDayView({ dateParam }: { dateParam: string }) {
   const { start, end } = dayBounds(dateParam);
 
   const supabase = await createClient();
@@ -60,7 +66,6 @@ export default async function MapaPage(props: PageProps<"/mapa">) {
     <div className="flex flex-col gap-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-white">Mapa das macas</h1>
           <p className="text-neutral-400 capitalize">
             {formatDateLabel(dateParam)}
           </p>
@@ -156,6 +161,73 @@ export default async function MapaPage(props: PageProps<"/mapa">) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+export default async function MapaPage(props: PageProps<"/mapa">) {
+  const searchParams = await props.searchParams;
+  await requireAdmin();
+
+  const requestedView =
+    typeof searchParams.view === "string" ? searchParams.view : "dia";
+  const view: MapaViewKey =
+    requestedView === "mes" || requestedView === "ano" ? requestedView : "dia";
+
+  const dateParam =
+    typeof searchParams.date === "string" ? searchParams.date : todayParam();
+  const monthParam =
+    typeof searchParams.month === "string"
+      ? searchParams.month
+      : monthOf(dateParam);
+  const yearParam =
+    typeof searchParams.year === "string" ? searchParams.year : yearOf(dateParam);
+
+  const tabs: { key: MapaViewKey; label: string; href: string }[] = [
+    { key: "dia", label: "Dia", href: `/mapa?view=dia&date=${dateParam}` },
+    { key: "mes", label: "Mês", href: `/mapa?view=mes&month=${monthParam}` },
+    { key: "ano", label: "Ano", href: `/mapa?view=ano&year=${yearParam}` },
+  ];
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-xl font-semibold text-white">Mapa das macas</h1>
+      </div>
+
+      <div className="flex gap-2">
+        {tabs.map((tab) => (
+          <Link
+            key={tab.key}
+            href={tab.href}
+            className={`rounded-full border px-3 py-1 text-sm transition ${
+              view === tab.key
+                ? "border-gold text-gold"
+                : "border-neutral-700 text-neutral-400 hover:border-gold-soft hover:text-gold"
+            }`}
+          >
+            {tab.label}
+          </Link>
+        ))}
+      </div>
+
+      {view === "mes" ? (
+        <MonthView
+          monthParam={monthParam}
+          basePath="/mapa"
+          title="Mapa das macas"
+          macaOnly
+        />
+      ) : view === "ano" ? (
+        <YearView
+          yearParam={yearParam}
+          basePath="/mapa"
+          title="Mapa das macas"
+          macaOnly
+        />
+      ) : (
+        <MapaDayView dateParam={dateParam} />
+      )}
     </div>
   );
 }
