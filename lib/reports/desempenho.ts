@@ -1,11 +1,41 @@
 import { createClient } from "@/lib/supabase/server";
-import { STUDIO_OFFSET, dateParamFromISO } from "@/lib/date";
+import {
+  STUDIO_OFFSET,
+  dateParamFromISO,
+  dayBounds,
+  formatDateLabel,
+  formatMonthLabel,
+  formatWeekLabel,
+  monthBounds,
+  monthOf,
+  weekBounds,
+  yearBounds,
+  yearOf,
+} from "@/lib/date";
 
 export const WEEKDAY_LABELS = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 export type PeriodType = "dia" | "semana" | "mes" | "ano";
+
+// Um só lugar pra traduzir period+date em [start,end) e no rótulo em
+// português — usado pela tela e pelo export em PDF, pra nunca desalinhar.
+export function periodBounds(period: PeriodType, dateParam: string) {
+  if (period === "dia") {
+    return { ...dayBounds(dateParam), label: formatDateLabel(dateParam) };
+  }
+  if (period === "semana") {
+    return { ...weekBounds(dateParam), label: formatWeekLabel(dateParam) };
+  }
+  if (period === "mes") {
+    return {
+      ...monthBounds(monthOf(dateParam)),
+      label: formatMonthLabel(monthOf(dateParam)),
+    };
+  }
+  return { ...yearBounds(yearOf(dateParam)), label: yearOf(dateParam) };
+}
 
 export type DesempenhoFilters = {
   from: Date;

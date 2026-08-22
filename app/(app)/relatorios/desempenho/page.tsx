@@ -2,22 +2,15 @@ import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
-  dayBounds,
-  formatDateLabel,
-  formatMonthLabel,
-  formatWeekLabel,
-  monthBounds,
   monthOf,
   shiftDate,
   shiftMonth,
   shiftWeek,
   shiftYear,
   todayParam,
-  weekBounds,
-  yearBounds,
   yearOf,
 } from "@/lib/date";
-import { fetchDesempenho, type PeriodType } from "@/lib/reports/desempenho";
+import { fetchDesempenho, periodBounds, type PeriodType } from "@/lib/reports/desempenho";
 import type { Profile, Unit } from "@/lib/types/database";
 
 function money(v: number) {
@@ -59,23 +52,7 @@ export default async function DesempenhoPage(
   const unitId = str("unit_id") || undefined;
   const collaboratorId = str("collaborator_id") || undefined;
 
-  const { start, end } =
-    period === "dia"
-      ? dayBounds(dateParam)
-      : period === "semana"
-        ? weekBounds(dateParam)
-        : period === "mes"
-          ? monthBounds(monthOf(dateParam))
-          : yearBounds(yearOf(dateParam));
-
-  const periodLabel =
-    period === "dia"
-      ? formatDateLabel(dateParam)
-      : period === "semana"
-        ? formatWeekLabel(dateParam)
-        : period === "mes"
-          ? formatMonthLabel(monthOf(dateParam))
-          : yearOf(dateParam);
+  const { start, end, label: periodLabel } = periodBounds(period, dateParam);
 
   const shiftedDate =
     period === "dia"
@@ -217,6 +194,12 @@ export default async function DesempenhoPage(
             Limpar filtros
           </Link>
         )}
+        <a
+          href={`/relatorios/desempenho/export/pdf?${buildQuery({ ...baseParams, date: dateParam })}`}
+          className="ml-auto rounded-lg border border-neutral-700 px-4 py-2 text-sm text-neutral-300 hover:border-gold-soft hover:text-gold"
+        >
+          Exportar PDF
+        </a>
       </form>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
