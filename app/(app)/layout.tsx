@@ -153,6 +153,9 @@ export default async function AppLayout({
                   <Link href="/contas-fixas" className={NAV_LINK_CLASS}>
                     Contas Fixas
                   </Link>
+                  <Link href="/arquivos" className={NAV_LINK_CLASS}>
+                    Arquivos
+                  </Link>
                   <Link href="/comissoes" className={NAV_LINK_CLASS}>
                     Comissões
                   </Link>

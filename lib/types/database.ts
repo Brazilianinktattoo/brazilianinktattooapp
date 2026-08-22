@@ -158,6 +158,27 @@ export type Notification = {
   created_at: string;
 };
 
+export type DocumentFolder = {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DocumentFile = {
+  id: string;
+  folder_id: string;
+  name: string;
+  storage_path: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+  uploaded_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -591,6 +612,22 @@ export type Database = {
         Row: Notification;
         Insert: Partial<Notification> & { profile_id: string; message: string };
         Update: Partial<Notification>;
+        Relationships: [];
+      };
+      document_folders: {
+        Row: DocumentFolder;
+        Insert: Partial<DocumentFolder> & { name: string };
+        Update: Partial<DocumentFolder>;
+        Relationships: [];
+      };
+      document_files: {
+        Row: DocumentFile;
+        Insert: Partial<DocumentFile> & {
+          folder_id: string;
+          name: string;
+          storage_path: string;
+        };
+        Update: Partial<DocumentFile>;
         Relationships: [];
       };
       products: {
