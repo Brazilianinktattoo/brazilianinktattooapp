@@ -42,6 +42,8 @@ export async function openComanda(formData: FormData) {
 
   if (error || !comanda) return;
 
+  await notifyAdminsOfComandaOpened(supabase, comanda.id);
+
   revalidatePath("/");
   redirect(`/comandas/${comanda.id}`);
 }
@@ -162,6 +164,8 @@ export async function openComandaFromClient(
     return { error: "Não foi possível abrir a comanda." };
   }
 
+  await notifyAdminsOfComandaOpened(supabase, comanda.id);
+
   revalidatePath("/");
   redirect(`/comandas/${comanda.id}`);
 }
@@ -262,6 +266,55 @@ export async function closeComanda(
 }
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+// Avisa todos os admins ativos sempre que uma comanda é aberta (pelas duas
+// vias: a partir de um agendamento ou direto pela ficha). Best-effort —
+// falha aqui não pode impedir a abertura da comanda.
+async function notifyAdminsOfComandaOpened(
+  supabase: SupabaseServerClient,
+  comandaId: string
+) {
+  try {
+    const { data: info } = await supabase
+      .from("comandas")
+      .select(
+        "appointment_id, collaborator:profiles!comandas_collaborator_id_fkey(full_name), unit:units(name), appointment:appointments!comandas_appointment_id_fkey(client_name)"
+      )
+      .eq("id", comandaId)
+      .maybeSingle<{
+        appointment_id: string;
+        collaborator: { full_name: string } | null;
+        unit: { name: string } | null;
+        appointment: { client_name: string } | null;
+      }>();
+
+    if (!info) return;
+
+    const collaboratorName = info.collaborator?.full_name || "Colaborador(a)";
+    const clientName = info.appointment?.client_name || "cliente";
+    const unitName = info.unit?.name ? ` (${info.unit.name})` : "";
+    const message = `Comanda aberta: ${collaboratorName} — ${clientName}${unitName}.`;
+
+    const admin = createAdminClient();
+    const { data: admins } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("role", "admin")
+      .eq("active", true);
+
+    if (!admins || admins.length === 0) return;
+
+    await admin.from("notifications").insert(
+      admins.map((a) => ({
+        profile_id: a.id,
+        appointment_id: info.appointment_id,
+        message,
+      }))
+    );
+  } catch {
+    // best-effort — não deixa um erro de notificação impedir a abertura
+  }
+}
 
 // Comissão sobre serviço (tatuagem/piercing) + comissão sobre venda de
 // jóia (Chefe de Piercing/Body Piercer, taxa separada — ver

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin, requireProfile } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { normalizePhone } from "@/lib/phone";
 import { deleteCalendarEvent, unitColorId, upsertCalendarEvent } from "@/lib/google-calendar";
 
@@ -40,6 +40,52 @@ function friendlyDbError(message: string): string {
 }
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
+
+// Avisa todos os admins ativos sempre que um agendamento é criado.
+// Best-effort — falha aqui não pode impedir o agendamento.
+async function notifyAdminsOfAppointmentCreated(
+  supabase: SupabaseServerClient,
+  appointmentId: string
+) {
+  try {
+    const { data: info } = await supabase
+      .from("appointments")
+      .select(
+        "client_name, collaborator:profiles!appointments_collaborator_id_fkey(full_name), unit:units(name)"
+      )
+      .eq("id", appointmentId)
+      .maybeSingle<{
+        client_name: string;
+        collaborator: { full_name: string } | null;
+        unit: { name: string } | null;
+      }>();
+
+    if (!info) return;
+
+    const collaboratorName = info.collaborator?.full_name || "Colaborador(a)";
+    const unitName = info.unit?.name ? ` (${info.unit.name})` : "";
+    const message = `Agendamento criado: ${collaboratorName} — ${info.client_name}${unitName}.`;
+
+    const admin = createAdminClient();
+    const { data: admins } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("role", "admin")
+      .eq("active", true);
+
+    if (!admins || admins.length === 0) return;
+
+    await admin.from("notifications").insert(
+      admins.map((a) => ({
+        profile_id: a.id,
+        appointment_id: appointmentId,
+        message,
+      }))
+    );
+  } catch {
+    // best-effort — não deixa um erro de notificação impedir o agendamento
+  }
+}
 
 // Mantém um cadastro de cliente por telefone (dedupe natural) sem mudar os
 // campos client_name/client_phone já existentes no agendamento — só soma um
@@ -245,6 +291,7 @@ export async function createAppointment(
   if (error) return { error: friendlyDbError(error.message) };
 
   await syncAppointmentToCalendar(supabase, created.id);
+  await notifyAdminsOfAppointmentCreated(supabase, created.id);
 
   revalidatePath("/");
   redirect("/");
