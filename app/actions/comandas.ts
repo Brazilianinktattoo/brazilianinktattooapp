@@ -176,6 +176,16 @@ export async function openComandaFromClient(
   redirect(`/comandas/${comanda.id}`);
 }
 
+// Exclusão permanente — só Admin. Serviços/produtos/jóias da comanda saem
+// junto (on delete cascade); o agendamento em si não é afetado.
+export async function deleteComanda(id: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase.from("comandas").delete().eq("id", id);
+  revalidatePath("/comandas");
+  redirect("/comandas");
+}
+
 export type CloseComandaState = {
   error?: string;
 };

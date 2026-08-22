@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ViewFichaButton } from "../../view-ficha-button";
+import { DeleteFichaButton } from "./delete-ficha-button";
 import type { AnamneseForm } from "@/lib/types/database";
 
 const PROCEDURE_LABEL: Record<string, string> = {
@@ -15,10 +16,9 @@ type Row = AnamneseForm & {
 };
 
 export default async function TodasFichasPage() {
-  // Visualização liberada pra todos os colaboradores (só admin teria
-  // edição/exclusão, se essa função existir no futuro — hoje a tela é
-  // somente leitura pra todo mundo).
-  await requireProfile();
+  // Visualização liberada pra todos os colaboradores — só Admin edita/exclui.
+  const { profile } = await requireProfile();
+  const isAdmin = profile.role === "admin";
   const supabase = await createClient();
 
   const { data: forms } = await supabase
@@ -117,6 +117,9 @@ export default async function TodasFichasPage() {
                       >
                         Agendar
                       </Link>
+                      {isAdmin && (
+                        <DeleteFichaButton id={f.id} clientName={f.full_name} />
+                      )}
                     </div>
                   </td>
                 </tr>

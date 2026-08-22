@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireProfile } from "@/lib/auth";
+import { requireAdmin, requireProfile } from "@/lib/auth";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { STUDIO_TZ } from "@/lib/date";
 import { normalizePhone } from "@/lib/phone";
@@ -527,4 +527,23 @@ export async function getAnamnesePdfUrl(filePath: string) {
     .from("documentos")
     .createSignedUrl(filePath, 60 * 10);
   return data?.signedUrl ?? null;
+}
+
+// Exclusão permanente — só Admin, e apaga o PDF junto (não fica lixo
+// órfão no bucket 'documentos').
+export async function deleteAnamneseForm(id: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { data: form } = await supabase
+    .from("anamnese_forms")
+    .select("file_path")
+    .eq("id", id)
+    .maybeSingle<Pick<AnamneseForm, "file_path">>();
+
+  const admin = createAdminClient();
+  if (form?.file_path) {
+    await admin.storage.from("documentos").remove([form.file_path]);
+  }
+  await supabase.from("anamnese_forms").delete().eq("id", id);
+  revalidatePath("/fichas/todas");
 }

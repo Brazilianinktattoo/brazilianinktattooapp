@@ -13,6 +13,7 @@ import { ComandaServices } from "./comanda-services";
 import { ComandaProducts } from "./comanda-products";
 import { ComandaJewelry } from "./comanda-jewelry";
 import { CloseComandaForm } from "./close-comanda-form";
+import { DeleteComandaButton } from "./delete-comanda-button";
 import { CommissionRow } from "./commission-row";
 import { PAYMENT_METHOD_LABEL } from "@/lib/fees";
 import type { ComandaJewelry as ComandaJewelryRow, JewelryCatalogItem } from "@/lib/types/database";
@@ -176,6 +177,12 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
             {comanda.status === "aberta" ? "Aberta" : "Fechada"}
           </span>
           {canEdit && <CloseComandaForm comandaId={comanda.id} />}
+          {profile.role === "admin" && (
+            <DeleteComandaButton
+              comandaId={comanda.id}
+              clientName={comanda.appointment?.client_name ?? "cliente"}
+            />
+          )}
         </div>
       </div>
 
