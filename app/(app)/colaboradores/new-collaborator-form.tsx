@@ -77,6 +77,28 @@ export function NewCollaboratorForm({
         />
       </div>
 
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="cpf" className="text-sm text-neutral-300">
+          CPF (opcional)
+        </label>
+        <input
+          id="cpf"
+          name="cpf"
+          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="address" className="text-sm text-neutral-300">
+          Endereço (opcional)
+        </label>
+        <input
+          id="address"
+          name="address"
+          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+        />
+      </div>
+
       {restrictToPiercer ? (
         <div className="flex flex-col gap-1.5">
           <span className="text-sm text-neutral-300">Nível de acesso</span>

@@ -24,6 +24,8 @@ export type Profile = {
   role: UserRole;
   active: boolean;
   birthday: string | null;
+  address: string | null;
+  cpf: string | null;
   // Aparece na lista de profissionais da Ficha de Anamnese com URL fixa
   // (QR Code) — só Admin edita quem entra nessa lista.
   qr_anamnese_enabled: boolean;

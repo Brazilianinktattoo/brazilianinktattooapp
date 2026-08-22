@@ -35,6 +35,8 @@ export async function createCollaborator(
   const full_name = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const address = String(formData.get("address") ?? "").trim();
+  const cpf = String(formData.get("cpf") ?? "").trim();
   const role = isChefePiercing
     ? "piercer"
     : (String(formData.get("role") ?? "") as UserRole);
@@ -50,7 +52,7 @@ export async function createCollaborator(
   }
 
   const admin = createAdminClient();
-  const { error } = await admin.auth.admin.createUser({
+  const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
@@ -63,6 +65,15 @@ export async function createCollaborator(
         ? "Já existe um colaborador com esse e-mail."
         : "Não foi possível criar o acesso. Tente novamente.",
     };
+  }
+
+  // Endereço/CPF não fazem parte do trigger handle_new_user (só
+  // full_name/email/role) — completa com um update logo em seguida.
+  if (data.user && (address || cpf)) {
+    await admin
+      .from("profiles")
+      .update({ address: address || null, cpf: cpf || null })
+      .eq("id", data.user.id);
   }
 
   revalidatePath("/colaboradores");
@@ -89,6 +100,34 @@ export async function updateCollaboratorBirthday(id: string, birthday: string) {
   await supabase
     .from("profiles")
     .update({ birthday: birthday || null })
+    .eq("id", id);
+  revalidatePath("/colaboradores");
+}
+
+export async function updateCollaboratorAddress(id: string, address: string) {
+  const { profile } = await requireAdminOrChefePiercing();
+  if (profile.role === "chefe_piercing") {
+    if ((await getTargetRole(id)) !== "piercer") return;
+  }
+
+  const supabase = await createClient();
+  await supabase
+    .from("profiles")
+    .update({ address: address.trim() || null })
+    .eq("id", id);
+  revalidatePath("/colaboradores");
+}
+
+export async function updateCollaboratorCpf(id: string, cpf: string) {
+  const { profile } = await requireAdminOrChefePiercing();
+  if (profile.role === "chefe_piercing") {
+    if ((await getTargetRole(id)) !== "piercer") return;
+  }
+
+  const supabase = await createClient();
+  await supabase
+    .from("profiles")
+    .update({ cpf: cpf.trim() || null })
     .eq("id", id);
   revalidatePath("/colaboradores");
 }

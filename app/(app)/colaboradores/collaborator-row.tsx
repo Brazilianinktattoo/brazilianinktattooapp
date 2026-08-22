@@ -6,6 +6,8 @@ import {
   updateCollaboratorName,
   updateCollaboratorEmail,
   updateCollaboratorBirthday,
+  updateCollaboratorAddress,
+  updateCollaboratorCpf,
   setCollaboratorActive,
   resetCollaboratorPassword,
   deleteCollaborator,
@@ -46,6 +48,8 @@ export function CollaboratorRow({
   const [active, setActive] = useState(profile.active);
   const [fullName, setFullName] = useState(profile.full_name);
   const [birthday, setBirthday] = useState(profile.birthday ?? "");
+  const [address, setAddress] = useState(profile.address ?? "");
+  const [cpf, setCpf] = useState(profile.cpf ?? "");
   const [qrEnabled, setQrEnabled] = useState(profile.qr_anamnese_enabled);
   const [pending, startTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -119,6 +123,37 @@ export function CollaboratorRow({
           {emailState.success && (
             <p className="mt-1 text-green-400">E-mail atualizado.</p>
           )}
+        </details>
+        <details className="mt-1 text-xs">
+          <summary className="cursor-pointer text-neutral-500 hover:text-white">
+            Endereço / CPF
+          </summary>
+          <div className="mt-2 flex flex-col gap-2">
+            <input
+              value={address}
+              disabled={pending}
+              placeholder="Endereço"
+              onChange={(e) => setAddress(e.target.value)}
+              onBlur={() => {
+                if (address !== (profile.address ?? "")) {
+                  startTransition(() => updateCollaboratorAddress(profile.id, address));
+                }
+              }}
+              className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 outline-none focus:border-gold disabled:opacity-60"
+            />
+            <input
+              value={cpf}
+              disabled={pending}
+              placeholder="CPF"
+              onChange={(e) => setCpf(e.target.value)}
+              onBlur={() => {
+                if (cpf !== (profile.cpf ?? "")) {
+                  startTransition(() => updateCollaboratorCpf(profile.id, cpf));
+                }
+              }}
+              className="rounded-lg border border-neutral-700 bg-neutral-900 px-2 py-1.5 text-neutral-100 outline-none focus:border-gold disabled:opacity-60"
+            />
+          </div>
         </details>
       </td>
 
