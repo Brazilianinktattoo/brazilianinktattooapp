@@ -18,7 +18,13 @@ export default async function ColaboradoresPage() {
     query = query.eq("role", "piercer");
   }
 
-  const { data: profiles } = await query.returns<Profile[]>();
+  const { data } = await query.returns<Profile[]>();
+  const profiles = (data ?? []).slice().sort((a, b) => {
+    const aPinned = a.full_name.trim().toLowerCase() === "brazilian ink tattoo";
+    const bPinned = b.full_name.trim().toLowerCase() === "brazilian ink tattoo";
+    if (aPinned !== bPinned) return aPinned ? -1 : 1;
+    return a.full_name.localeCompare(b.full_name);
+  });
 
   return (
     <div className="flex flex-col gap-6">
@@ -47,7 +53,7 @@ export default async function ColaboradoresPage() {
             </tr>
           </thead>
           <tbody>
-            {(profiles ?? []).map((profile) => (
+            {profiles.map((profile) => (
               <CollaboratorRow
                 key={profile.id}
                 profile={profile}
@@ -57,7 +63,7 @@ export default async function ColaboradoresPage() {
             ))}
           </tbody>
         </table>
-        {(profiles ?? []).length === 0 && (
+        {profiles.length === 0 && (
           <p className="p-6 text-center text-neutral-500">
             {isChefePiercing
               ? "Nenhum body piercer cadastrado ainda."
