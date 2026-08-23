@@ -44,7 +44,7 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
   const { data: comanda } = await supabase
     .from("comandas")
     .select(
-      "*, appointment:appointments(id, client_name, starts_at, client_is_own), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role, commission_rate, commission_rate_sales), unit:units(id, name)"
+      "*, appointment:appointments(id, client_name, starts_at, client_is_own, deposit_amount, deposit_status), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role, commission_rate, commission_rate_sales), unit:units(id, name)"
     )
     .eq("id", id)
     .maybeSingle<ComandaWithRelations>();
@@ -117,7 +117,7 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
     comanda.appointment_id
       ? supabase
           .from("anamnese_forms")
-          .select("client_origin, signed_at, deposit_amount")
+          .select("client_origin, signed_at")
           .eq("appointment_id", comanda.appointment_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -218,11 +218,14 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
           </span>
         </div>
 
-        {anamnese?.deposit_amount ? (
+        {comanda.appointment?.deposit_amount ? (
           <div className="flex items-center justify-between border-t border-neutral-800 pt-2 text-sm text-neutral-300">
-            <span>Sinal já pago</span>
+            <span>
+              Sinal{" "}
+              {comanda.appointment.deposit_status === "pago" ? "pago" : "combinado"}
+            </span>
             <span className="text-green-400">
-              {anamnese.deposit_amount.toLocaleString("pt-BR", {
+              {comanda.appointment.deposit_amount.toLocaleString("pt-BR", {
                 style: "currency",
                 currency: "BRL",
               })}

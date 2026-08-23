@@ -219,7 +219,10 @@ export type Comanda = {
 };
 
 export type ComandaWithRelations = Comanda & {
-  appointment: Pick<Appointment, "id" | "client_name" | "starts_at" | "client_is_own"> | null;
+  appointment: Pick<
+    Appointment,
+    "id" | "client_name" | "starts_at" | "client_is_own" | "deposit_amount" | "deposit_status"
+  > | null;
   collaborator: Pick<
     Profile,
     "id" | "full_name" | "role" | "commission_rate" | "commission_rate_sales"
