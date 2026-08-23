@@ -489,6 +489,15 @@ export type CoworkingPassWithRelations = CoworkingPass & {
   maca: Pick<Maca, "id" | "label"> | null;
 };
 
+export type ExceptionPass = {
+  id: string;
+  collaborator_id: string;
+  starts_at: string;
+  ends_at: string;
+  created_by: string | null;
+  created_at: string;
+};
+
 export type CourseType =
   | "tatuagem_iniciante"
   | "tatuagem_especializacao"
@@ -764,6 +773,15 @@ export type Database = {
           ends_at: string;
         };
         Update: Partial<CoworkingPass>;
+        Relationships: [];
+      };
+      collaborator_exception_passes: {
+        Row: ExceptionPass;
+        Insert: Partial<ExceptionPass> & {
+          collaborator_id: string;
+          ends_at: string;
+        };
+        Update: Partial<ExceptionPass>;
         Relationships: [];
       };
       course_classes: {
