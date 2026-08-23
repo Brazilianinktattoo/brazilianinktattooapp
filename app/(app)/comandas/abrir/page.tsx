@@ -33,7 +33,7 @@ export default async function AbrirComandaPage(
       client_phone
         ? supabase
             .from("anamnese_forms")
-            .select("id")
+            .select("id, deposit_amount")
             .eq("phone", client_phone)
             .not("signed_at", "is", null)
             .limit(1)
@@ -89,6 +89,15 @@ export default async function AbrirComandaPage(
           {client_name} · {client_phone}
           {anamnese ? " — ficha de anamnese já preenchida." : ""}
         </p>
+        {anamnese?.deposit_amount ? (
+          <p className="mt-1 text-sm text-green-400">
+            Sinal já pago:{" "}
+            {anamnese.deposit_amount.toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL",
+            })}
+          </p>
+        ) : null}
       </div>
 
       <OpenComandaForm

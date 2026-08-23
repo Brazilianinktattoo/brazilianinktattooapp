@@ -117,7 +117,7 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
     comanda.appointment_id
       ? supabase
           .from("anamnese_forms")
-          .select("client_origin, signed_at")
+          .select("client_origin, signed_at, deposit_amount")
           .eq("appointment_id", comanda.appointment_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
@@ -217,6 +217,18 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
             })}
           </span>
         </div>
+
+        {anamnese?.deposit_amount ? (
+          <div className="flex items-center justify-between border-t border-neutral-800 pt-2 text-sm text-neutral-300">
+            <span>Sinal já pago</span>
+            <span className="text-green-400">
+              {anamnese.deposit_amount.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })}
+            </span>
+          </div>
+        ) : null}
 
         <div className="mt-2 flex flex-col gap-1 border-t border-neutral-800 pt-2 text-sm text-neutral-300">
           <CommissionRow
