@@ -12,7 +12,7 @@ export default async function ColaboradoresPage() {
   let query = supabase
     .from("profiles")
     .select("*")
-    .order("created_at", { ascending: true });
+    .order("full_name", { ascending: true });
 
   if (isChefePiercing) {
     query = query.eq("role", "piercer");
