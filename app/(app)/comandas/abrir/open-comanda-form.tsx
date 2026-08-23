@@ -122,6 +122,38 @@ export function OpenComandaForm({
         </div>
       )}
 
+      <div className="grid gap-4 sm:grid-cols-2 rounded-lg border border-neutral-800 p-4">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="deposit_amount" className="text-sm text-neutral-300">
+            Valor do sinal (R$)
+          </label>
+          <input
+            id="deposit_amount"
+            name="deposit_amount"
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            defaultValue={0}
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="deposit_status" className="text-sm text-neutral-300">
+            Status do sinal
+          </label>
+          <select
+            id="deposit_status"
+            name="deposit_status"
+            defaultValue="pendente"
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+          >
+            <option value="pendente">Pendente</option>
+            <option value="pago">Pago</option>
+          </select>
+        </div>
+      </div>
+
       {state.error && <p className="text-sm text-red-400">{state.error}</p>}
 
       <button

@@ -70,6 +70,8 @@ export async function openComandaFromClient(
   const collaborator_id = String(formData.get("collaborator_id") ?? "") || user.id;
   const unit_id = String(formData.get("unit_id") ?? "");
   const maca_id = String(formData.get("maca_id") ?? "") || null;
+  const deposit_amount = Number(formData.get("deposit_amount") ?? 0) || 0;
+  const deposit_status = formData.get("deposit_status") === "pago" ? "pago" : "pendente";
 
   if (!client_name || !client_phone) {
     return { error: "Cliente inválido — volte e tente de novo." };
@@ -143,6 +145,8 @@ export async function openComandaFromClient(
         : "Comanda aberta sem agendamento prévio — sem perfuração, ficha de anamnese não exigida.",
       starts_at: now.toISOString(),
       ends_at: oneHourLater.toISOString(),
+      deposit_amount,
+      deposit_status,
     })
     .select("id")
     .single();
