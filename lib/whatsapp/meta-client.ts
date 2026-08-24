@@ -29,13 +29,15 @@ export const MESSAGE_TEMPLATES: MessageTemplateDef[] = [
   {
     name: "agendamento_criado_admin",
     category: "UTILITY",
-    bodyText: "Agendamento criado: {{1}} — cliente {{2}}, unidade {{3}}.",
+    bodyText:
+      "📅 Novo agendamento registrado no sistema do estúdio Brazilian Ink Tattoo.\n\nProfissional: {{1}}\nCliente: {{2}}\nUnidade: {{3}}\n\nConfira os detalhes completos no painel administrativo do sistema.",
     exampleParams: ["Jansen de Almeida", "Maria Souza", "Barra Shopping"],
   },
   {
     name: "comanda_aberta_admin",
     category: "UTILITY",
-    bodyText: "Comanda aberta: {{1}} — cliente {{2}}, unidade {{3}}.",
+    bodyText:
+      "🧾 Uma nova comanda foi aberta no sistema do estúdio Brazilian Ink Tattoo.\n\nProfissional: {{1}}\nCliente: {{2}}\nUnidade: {{3}}\n\nConfira os detalhes completos no painel administrativo do sistema.",
     exampleParams: ["Jansen de Almeida", "Maria Souza", "Barra Shopping"],
   },
   {
