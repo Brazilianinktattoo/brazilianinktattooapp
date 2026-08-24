@@ -42,13 +42,23 @@ export async function registerPhoneNumber(): Promise<SendResult> {
 
     const data = (await res.json().catch(() => ({}))) as {
       success?: boolean;
-      error?: { message?: string };
+      error?: {
+        message?: string;
+        type?: string;
+        code?: number;
+        error_subcode?: number;
+        fbtrace_id?: string;
+      };
     };
 
     if (!res.ok || !data.success) {
+      const e = data.error;
+      const detail = e
+        ? ` [type=${e.type ?? "?"} code=${e.code ?? "?"} subcode=${e.error_subcode ?? "?"} trace=${e.fbtrace_id ?? "?"}]`
+        : "";
       return {
         ok: false,
-        error: data.error?.message || `Meta respondeu ${res.status} sem sucesso.`,
+        error: `${e?.message || `Meta respondeu ${res.status} sem sucesso.`}${detail}`,
       };
     }
 
