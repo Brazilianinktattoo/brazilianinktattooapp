@@ -8,7 +8,7 @@ import { feeRatePercentFor, computeChargedAmount, PAYMENT_METHOD_LABEL } from "@
 import { commissionRate, resolveClientIsOwn, salesCommissionRate } from "@/lib/commission";
 import { computeCommissionDeadline } from "@/lib/commission-deadline";
 import { normalizePhone } from "@/lib/phone";
-import { sendWhatsAppMessage } from "@/lib/whatsapp/wame-client";
+import { sendWhatsAppMessage } from "@/lib/whatsapp/meta-client";
 import type { CardFeeRate, ClientOrigin, PaymentMethod } from "@/lib/types/database";
 
 export async function openComanda(formData: FormData) {

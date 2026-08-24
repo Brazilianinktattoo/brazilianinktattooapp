@@ -6,7 +6,7 @@ import { requireAdmin, requireProfile } from "@/lib/auth";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { normalizePhone } from "@/lib/phone";
 import { deleteCalendarEvent, unitColorId, upsertCalendarEvent } from "@/lib/google-calendar";
-import { sendWhatsAppMessage } from "@/lib/whatsapp/wame-client";
+import { sendWhatsAppMessage } from "@/lib/whatsapp/meta-client";
 
 export type AppointmentFormState = {
   error?: string;

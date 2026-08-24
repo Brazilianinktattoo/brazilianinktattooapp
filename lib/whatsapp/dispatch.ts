@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import { sendWhatsAppMessage } from "./wame-client";
+import { sendWhatsAppMessage } from "./meta-client";
 import type { MessageQueueItem } from "@/lib/types/database";
 
 // Proteção contra bloqueio: um lote por chamada (até BATCH_SIZE contatos),
