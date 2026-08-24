@@ -1,6 +1,7 @@
 import { requireAdmin } from "@/lib/auth";
 import { RegisterNumberForm } from "./register-number-form";
 import { TestMessageForm } from "./test-message-form";
+import { CreateTemplatesForm } from "./create-templates-form";
 
 export default async function WhatsAppSetupPage() {
   await requireAdmin();
@@ -32,6 +33,16 @@ export default async function WhatsAppSetupPage() {
           Só funciona depois do passo 1 ter dado certo.
         </p>
         <TestMessageForm />
+      </div>
+
+      <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
+        <h2 className="font-medium text-white">3. Criar modelos de mensagem</h2>
+        <p className="mt-1 text-sm text-neutral-400">
+          Envia os 8 modelos pra aprovação da Meta (notificações de admin +
+          mensagens automáticas de cliente). Leva de minutos a algumas horas
+          pra aprovar — acompanhe em WhatsApp Manager → Modelos de mensagem.
+        </p>
+        <CreateTemplatesForm />
       </div>
     </div>
   );

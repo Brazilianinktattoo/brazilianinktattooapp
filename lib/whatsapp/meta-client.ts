@@ -5,6 +5,7 @@ export type SendResult =
   | { ok: false; error: string };
 
 const GRAPH_API_BASE = "https://graph.facebook.com/v21.0";
+const WABA_ID = "1069624022667369";
 
 function getPhoneNumberId(): string | undefined {
   return process.env.META_PHONE_NUMBER_ID;
@@ -13,6 +14,68 @@ function getPhoneNumberId(): string | undefined {
 function getAccessToken(): string | undefined {
   return process.env.META_WHATSAPP_TOKEN;
 }
+
+export type MessageTemplateDef = {
+  name: string;
+  category: "UTILITY" | "MARKETING";
+  bodyText: string;
+  exampleParams?: string[];
+};
+
+// Modelos aprovados pela Meta — necessários pra mandar mensagem fora da
+// janela de 24h após o cliente/admin ter mandado mensagem pro número do
+// estúdio (fora dessa janela, texto livre não é entregue).
+export const MESSAGE_TEMPLATES: MessageTemplateDef[] = [
+  {
+    name: "agendamento_criado_admin",
+    category: "UTILITY",
+    bodyText: "Agendamento criado: {{1}} — cliente {{2}}, unidade {{3}}.",
+    exampleParams: ["Jansen de Almeida", "Maria Souza", "Barra Shopping"],
+  },
+  {
+    name: "comanda_aberta_admin",
+    category: "UTILITY",
+    bodyText: "Comanda aberta: {{1}} — cliente {{2}}, unidade {{3}}.",
+    exampleParams: ["Jansen de Almeida", "Maria Souza", "Barra Shopping"],
+  },
+  {
+    name: "feliz_aniversario_cliente",
+    category: "MARKETING",
+    bodyText:
+      "Feliz aniversário, {{1}}! 🎉🖤\n\nA equipe do Brazilian Ink Tattoo deseja a você um dia incrível, cheio de boas energias!\n\nTemos um presente muito especial pra você — basta entrar em contato conosco e retirar seu presente! 🎁\n\nEsperamos te ver em breve. Um abraço da família BIT! 🖤",
+    exampleParams: ["Maria"],
+  },
+  {
+    name: "pos_tattoo_dia1",
+    category: "UTILITY",
+    bodyText:
+      "Olá! Sua tattoo está fresquinha 💛 Antes de mais nada, obrigado por nos deixar fazer parte da sua história! Nas próximas horas, alguns cuidados são essenciais:\n\n🩹 O filme protetor deve ficar na pele por até 4 dias — se acumular muito líquido embaixo, remova com água morna antes disso\n🚫 Evite tocar, coçar ou deixar a região em contato com roupas apertadas\n🚿 Ao tomar banho, evite jato de água direto na tattoo\n🌊 Não esqueça dos cuidados indicados pelo seu tatuador(a): evite água do mar, piscina, sauna e exposição ao sol durante a cicatrização\n\n⚠️ Se notar muito calor ou dor no local, vermelhidão excessiva ou muito inchaço, fale com seu tatuador(a) ou com a gente — estamos aqui pra te ajudar no que for preciso.\n\nUm abraço da família BIT! 🖤",
+  },
+  {
+    name: "pos_tattoo_dia7",
+    category: "UTILITY",
+    bodyText:
+      "Olá! Já faz uma semana da sua tattoo 💛 Essa é a fase em que a pele começa a descamar — é normal, não arranque, deixe soltar sozinha.\n\nLembrando: depois que o filme protetor sair por completo, aplique uma fina camada de hidratante da sua escolha, e evite sol direto na região.\n\nQualquer dúvida, fale com seu tatuador(a) ou com a gente!\n\nEsperamos te ver em breve. Até lá! 🖤",
+  },
+  {
+    name: "pos_tattoo_dia15",
+    category: "UTILITY",
+    bodyText:
+      "Olá! Já faz 15 dias da sua tattoo — como está a cicatrização? 💛 Nessa fase a pele já deve estar bem menos sensível, mas continue hidratando e usando protetor solar sempre que for se expor ao sol.\n\nQualquer dúvida, fale com seu tatuador(a) ou com a gente!\n\nEsperamos te ver em breve. Até lá! 🖤",
+  },
+  {
+    name: "pos_tattoo_dia30",
+    category: "UTILITY",
+    bodyText:
+      "Olá! Um mês da sua nova tattoo 🎉 A essa altura ela já deve estar praticamente cicatrizada por completo. Continue hidratando a pele e usando protetor solar pra manter as cores vivas por muito mais tempo.\n\nEsperamos que esteja amando o resultado! Qualquer dúvida, estamos por aqui.\n\nUm abraço da família BIT! 🖤",
+  },
+  {
+    name: "pos_tattoo_dia60",
+    category: "UTILITY",
+    bodyText:
+      "Olá! Já se passaram 60 dias da sua tattoo — esperamos que esteja 100% cicatrizada e que você esteja curtindo muito o resultado 🖤\n\nFicamos muito felizes em fazer parte dessa marca na sua história. Se puder, adoraríamos ver como ficou — manda uma fotinho pra gente!\n\nSempre que quiser voltar pra fazer mais uma, é só chamar. Um abraço da família Brazilian Ink Tattoo! 🖤",
+  },
+];
 
 // Ativação única do número na API oficial da Meta — precisa rodar uma vez
 // antes do número aceitar enviar/receber mensagens. Usa o PIN de verificação
@@ -65,6 +128,58 @@ export async function registerPhoneNumber(): Promise<SendResult> {
     return { ok: true, providerId: phoneNumberId };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Falha desconhecida ao registrar." };
+  }
+}
+
+// Submete um modelo de mensagem pra aprovação da Meta (leva minutos a
+// algumas horas). Idempotente na prática — se o modelo já existe com esse
+// nome/idioma, a Meta responde com erro informativo, não duplica.
+export async function createMessageTemplate(def: MessageTemplateDef): Promise<SendResult> {
+  const token = getAccessToken();
+  if (!token) {
+    return { ok: false, error: "Falta META_WHATSAPP_TOKEN." };
+  }
+
+  const components: Record<string, unknown>[] = [
+    {
+      type: "BODY",
+      text: def.bodyText,
+      ...(def.exampleParams
+        ? { example: { body_text: [def.exampleParams] } }
+        : {}),
+    },
+  ];
+
+  try {
+    const res = await fetch(`${GRAPH_API_BASE}/${WABA_ID}/message_templates`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: def.name,
+        language: "pt_BR",
+        category: def.category,
+        components,
+      }),
+    });
+
+    const data = (await res.json().catch(() => ({}))) as {
+      id?: string;
+      error?: { message?: string; error_user_msg?: string };
+    };
+
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data.error?.error_user_msg || data.error?.message || `Meta respondeu ${res.status}.`,
+      };
+    }
+
+    return { ok: true, providerId: data.id ?? "" };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Falha desconhecida ao criar modelo." };
   }
 }
 

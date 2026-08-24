@@ -1,7 +1,12 @@
 "use server";
 
 import { requireAdmin } from "@/lib/auth";
-import { registerPhoneNumber, sendWhatsAppMessage } from "@/lib/whatsapp/meta-client";
+import {
+  registerPhoneNumber,
+  sendWhatsAppMessage,
+  createMessageTemplate,
+  MESSAGE_TEMPLATES,
+} from "@/lib/whatsapp/meta-client";
 
 export type RegisterNumberState = {
   error?: string;
@@ -45,4 +50,27 @@ export async function sendWhatsAppTestMessage(
     return { error: result.error };
   }
   return { success: true };
+}
+
+export type CreateTemplatesState = {
+  results?: { name: string; ok: boolean; detail: string }[];
+};
+
+export async function createWhatsAppTemplates(
+  _prevState: CreateTemplatesState,
+  _formData: FormData
+): Promise<CreateTemplatesState> {
+  await requireAdmin();
+
+  const results: { name: string; ok: boolean; detail: string }[] = [];
+  for (const def of MESSAGE_TEMPLATES) {
+    const result = await createMessageTemplate(def);
+    results.push({
+      name: def.name,
+      ok: result.ok,
+      detail: result.ok ? "Enviado pra aprovação" : result.error,
+    });
+  }
+
+  return { results };
 }
