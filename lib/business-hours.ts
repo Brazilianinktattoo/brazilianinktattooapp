@@ -5,20 +5,17 @@ export type FreeDay = { date: string; ranges: FreeRange[] };
 
 type BusyRange = { starts_at: string; ends_at: string };
 
-// Janelas livres de um único dia, dado o horário de funcionamento
-// ("HH:MM") e os intervalos já ocupados. Domingo sempre devolve []
-// (estúdio fechado) — mesma regra da trigger enforce_appointment_rules.
+// Janelas livres de um único dia, considerando o dia inteiro disponível
+// (o estúdio pode atender em qualquer dia/horário, inclusive domingo) menos
+// os intervalos já ocupados.
 export function freeRangesForDay(
   dateParam: string,
-  opensAt: string,
-  closesAt: string,
+  _opensAt: string,
+  _closesAt: string,
   busy: BusyRange[]
 ): FreeRange[] {
-  const dow = new Date(`${dateParam}T12:00:00${STUDIO_OFFSET}`).getUTCDay();
-  if (dow === 0) return [];
-
-  const dayStart = new Date(`${dateParam}T${opensAt.slice(0, 5)}:00${STUDIO_OFFSET}`);
-  const dayEnd = new Date(`${dateParam}T${closesAt.slice(0, 5)}:00${STUDIO_OFFSET}`);
+  const dayStart = new Date(`${dateParam}T00:00:00${STUDIO_OFFSET}`);
+  const dayEnd = new Date(`${dateParam}T23:59:59${STUDIO_OFFSET}`);
   if (dayEnd <= dayStart) return [];
 
   const busyToday = busy

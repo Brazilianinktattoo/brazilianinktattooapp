@@ -154,10 +154,8 @@ export async function openComandaFromClient(
   if (appointmentError || !appointment) {
     const msg = appointmentError?.message ?? "";
     let friendlyError = "Não foi possível abrir a comanda.";
-    if (msg.includes("nao funciona aos domingos")) {
-      friendlyError = "O estúdio não funciona aos domingos.";
-    } else if (msg.includes("funcionamento da unidade")) {
-      friendlyError = "Fora do horário de funcionamento da unidade — só Admin pode abrir comanda agora.";
+    if (msg.includes("atravessar a meia-noite")) {
+      friendlyError = "O agendamento de maca não pode atravessar a meia-noite.";
     } else if (msg.includes("maca")) {
       friendlyError = "Maca inválida pra esse profissional/unidade.";
     }
