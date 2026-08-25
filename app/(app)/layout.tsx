@@ -159,9 +159,6 @@ export default async function AppLayout({
                   <Link href="/comissoes" className={NAV_LINK_CLASS}>
                     Comissões
                   </Link>
-                  <Link href="/liberacoes" className={NAV_LINK_CLASS}>
-                    Liberações
-                  </Link>
                 </>
               )}
               {(profile.role === "admin" ||
