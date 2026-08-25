@@ -7,6 +7,7 @@ import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { normalizePhone } from "@/lib/phone";
 import { deleteCalendarEvent, unitColorId, upsertCalendarEvent } from "@/lib/google-calendar";
 import { sendWhatsAppMessage } from "@/lib/whatsapp/meta-client";
+import { STUDIO_OFFSET } from "@/lib/date";
 
 export type AppointmentFormState = {
   error?: string;
@@ -238,8 +239,11 @@ function readAppointmentForm(formData: FormData) {
     } as const;
   }
 
-  const starts_at = new Date(starts_at_raw);
-  const ends_at = new Date(ends_at_raw);
+  // starts_at_raw/ends_at_raw vêm de <input type="datetime-local"> sem fuso
+  // ("YYYY-MM-DDTHH:mm") — sempre no horário de Brasília (STUDIO_OFFSET),
+  // nunca no fuso do servidor (Vercel roda em UTC).
+  const starts_at = new Date(`${starts_at_raw}:00${STUDIO_OFFSET}`);
+  const ends_at = new Date(`${ends_at_raw}:00${STUDIO_OFFSET}`);
   if (Number.isNaN(starts_at.getTime()) || Number.isNaN(ends_at.getTime())) {
     return { error: "Horário inválido." } as const;
   }

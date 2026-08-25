@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { STUDIO_OFFSET } from "@/lib/date";
 import type { AnamneseLanguage, FixedFeePeriod } from "@/lib/types/database";
 
 export type CreatePassState = {
@@ -49,8 +50,10 @@ export async function createPass(
     return { error: "Selecione o idioma da ficha de anamnese." };
   }
 
-  const starts_at = new Date(starts_at_raw);
-  const ends_at = new Date(ends_at_raw);
+  // Mesma correção de fuso do agendamento normal — o input datetime-local
+  // não carrega fuso, sempre representa horário de Brasília.
+  const starts_at = new Date(`${starts_at_raw}:00${STUDIO_OFFSET}`);
+  const ends_at = new Date(`${ends_at_raw}:00${STUDIO_OFFSET}`);
   if (Number.isNaN(starts_at.getTime()) || Number.isNaN(ends_at.getTime())) {
     return { error: "Período inválido." };
   }
