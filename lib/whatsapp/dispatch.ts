@@ -1,6 +1,19 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import { sendWhatsAppMessage } from "./meta-client";
+import { sendWhatsAppMessage, sendTemplateMessage } from "./meta-client";
 import type { MessageQueueItem } from "@/lib/types/database";
+
+// Mapeia o "kind" da fila pro modelo aprovado pela Meta correspondente —
+// necessário porque texto livre só entrega dentro da janela de 24h. Sem
+// modelo (ex: "promocao", texto livre digitado pelo admin), cai pro envio
+// de texto normal, que só funciona dentro dessa janela.
+const TEMPLATE_BY_KIND: Record<string, { name: string; withName?: boolean }> = {
+  aniversario: { name: "feliz_aniversario_cliente", withName: true },
+  pos_tattoo_1: { name: "pos_tattoo_dia1" },
+  pos_tattoo_7: { name: "pos_tattoo_dia7" },
+  pos_tattoo_15: { name: "pos_tattoo_dia15" },
+  pos_tattoo_30: { name: "pos_tattoo_dia30" },
+  pos_tattoo_60: { name: "pos_tattoo_dia60" },
+};
 
 // Proteção contra bloqueio: um lote por chamada (até BATCH_SIZE contatos),
 // com um intervalo curto entre mensagens dentro do lote. A pausa MAIOR
@@ -52,7 +65,14 @@ export async function dispatchPendingBatch(): Promise<DispatchResult> {
       continue;
     }
 
-    const result = await sendWhatsAppMessage(item.client.phone, item.body);
+    const template = TEMPLATE_BY_KIND[item.kind];
+    const result = template
+      ? await sendTemplateMessage(
+          item.client.phone,
+          template.name,
+          template.withName ? [item.client.full_name.split(" ")[0]] : []
+        )
+      : await sendWhatsAppMessage(item.client.phone, item.body);
 
     if (result.ok) {
       await supabase

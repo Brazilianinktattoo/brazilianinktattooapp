@@ -227,3 +227,65 @@ export async function sendWhatsAppMessage(phoneDigits: string, body: string): Pr
     return { ok: false, error: err instanceof Error ? err.message : "Falha desconhecida ao enviar." };
   }
 }
+
+// Envia usando um modelo aprovado pela Meta — funciona mesmo fora da janela
+// de 24h após a última mensagem do destinatário (ao contrário de
+// sendWhatsAppMessage, que só entrega texto livre dentro dessa janela).
+export async function sendTemplateMessage(
+  phoneDigits: string,
+  templateName: string,
+  bodyParams: string[] = []
+): Promise<SendResult> {
+  const phoneNumberId = getPhoneNumberId();
+  const token = getAccessToken();
+
+  if (!phoneNumberId || !token) {
+    return {
+      ok: false,
+      error: "API do WhatsApp não configurada — falta META_PHONE_NUMBER_ID ou META_WHATSAPP_TOKEN.",
+    };
+  }
+
+  const phone = toWhatsAppE164(phoneDigits);
+
+  try {
+    const res = await fetch(`${GRAPH_API_BASE}/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: "pt_BR" },
+          ...(bodyParams.length > 0
+            ? {
+                components: [
+                  {
+                    type: "body",
+                    parameters: bodyParams.map((text) => ({ type: "text", text })),
+                  },
+                ],
+              }
+            : {}),
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return { ok: false, error: `Meta API respondeu ${res.status}: ${text.slice(0, 300)}` };
+    }
+
+    const data = (await res.json().catch(() => ({}))) as {
+      messages?: { id?: string }[];
+    };
+    return { ok: true, providerId: data.messages?.[0]?.id ?? "" };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Falha desconhecida ao enviar." };
+  }
+}

@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Appointment } from "@/lib/types/database";
+import { collaboratorColor } from "@/lib/collaborator-color";
 import { STUDIO_TZ, monthOf, shiftYear, todayParam, yearBounds } from "@/lib/date";
+
+const MAX_DOTS_PER_MONTH = 10;
 
 const MONTH_LABELS = [
   "Janeiro",
@@ -34,15 +37,16 @@ export async function YearView({
   const supabase = await createClient();
   let query = supabase
     .from("appointments")
-    .select("starts_at, status")
+    .select("starts_at, status, collaborator_id")
     .gte("starts_at", start.toISOString())
     .lt("starts_at", end.toISOString());
   if (macaOnly) query = query.not("maca_id", "is", null);
   const { data: appointments } = await query.returns<
-    Pick<Appointment, "starts_at" | "status">[]
+    Pick<Appointment, "starts_at" | "status" | "collaborator_id">[]
   >();
 
   const countByMonth = new Map<number, { total: number; ativos: number }>();
+  const collaboratorsByMonth = new Map<number, Set<string>>();
   for (const appt of appointments ?? []) {
     const monthStr = new Date(appt.starts_at).toLocaleDateString("en-CA", {
       timeZone: STUDIO_TZ,
@@ -52,6 +56,12 @@ export async function YearView({
     entry.total += 1;
     if (appt.status !== "cancelado") entry.ativos += 1;
     countByMonth.set(monthIndex, entry);
+
+    if (appt.status !== "cancelado") {
+      const people = collaboratorsByMonth.get(monthIndex) ?? new Set();
+      people.add(appt.collaborator_id);
+      collaboratorsByMonth.set(monthIndex, people);
+    }
   }
 
   const currentMonth = monthOf(todayParam());
@@ -90,6 +100,7 @@ export async function YearView({
           const monthValue = `${yearParam}-${String(i + 1).padStart(2, "0")}`;
           const stats = countByMonth.get(i);
           const isCurrentMonth = monthValue === currentMonth;
+          const people = Array.from(collaboratorsByMonth.get(i) ?? []);
 
           return (
             <Link
@@ -104,6 +115,21 @@ export async function YearView({
                 {stats?.ativos ?? 0}
               </div>
               <div className="text-xs text-neutral-500">agendamentos</div>
+              {people.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {people.slice(0, MAX_DOTS_PER_MONTH).map((id) => (
+                    <span
+                      key={id}
+                      className={`h-2 w-2 rounded-full ${collaboratorColor(id).dot}`}
+                    />
+                  ))}
+                  {people.length > MAX_DOTS_PER_MONTH && (
+                    <span className="text-[10px] text-neutral-500">
+                      +{people.length - MAX_DOTS_PER_MONTH}
+                    </span>
+                  )}
+                </div>
+              )}
             </Link>
           );
         })}

@@ -8,7 +8,7 @@ import { feeRatePercentFor, computeChargedAmount, PAYMENT_METHOD_LABEL } from "@
 import { commissionRate, resolveClientIsOwn, salesCommissionRate } from "@/lib/commission";
 import { computeCommissionDeadline } from "@/lib/commission-deadline";
 import { normalizePhone } from "@/lib/phone";
-import { sendWhatsAppMessage } from "@/lib/whatsapp/meta-client";
+import { sendTemplateMessage } from "@/lib/whatsapp/meta-client";
 import type { CardFeeRate, ClientOrigin, PaymentMethod } from "@/lib/types/database";
 
 export async function openComanda(formData: FormData) {
@@ -310,8 +310,8 @@ async function notifyAdminsOfComandaOpened(
 
     const collaboratorName = info.collaborator?.full_name || "Colaborador(a)";
     const clientName = info.appointment?.client_name || "cliente";
-    const unitName = info.unit?.name ? ` (${info.unit.name})` : "";
-    const message = `Comanda aberta: ${collaboratorName} — ${clientName}${unitName}.`;
+    const unitName = info.unit?.name || "—";
+    const message = `Comanda aberta: ${collaboratorName} — ${clientName} (${unitName}).`;
 
     const admin = createAdminClient();
     const { data: admins } = await admin
@@ -331,11 +331,18 @@ async function notifyAdminsOfComandaOpened(
     );
 
     // Envio imediato (não pela fila diária do cron) — best-effort, uma
-    // falha de WhatsApp não afeta o sininho nem a abertura da comanda.
+    // falha de WhatsApp não afeta o sininho nem a abertura da comanda. Usa
+    // modelo aprovado pela Meta (funciona mesmo fora da janela de 24h).
     await Promise.all(
       admins
         .filter((a) => a.whatsapp_phone)
-        .map((a) => sendWhatsAppMessage(a.whatsapp_phone!, message).catch(() => null))
+        .map((a) =>
+          sendTemplateMessage(a.whatsapp_phone!, "comanda_aberta_admin", [
+            collaboratorName,
+            clientName,
+            unitName,
+          ]).catch(() => null)
+        )
     );
   } catch {
     // best-effort — não deixa um erro de notificação impedir a abertura

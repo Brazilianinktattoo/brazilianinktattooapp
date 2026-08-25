@@ -6,7 +6,7 @@ import { requireAdmin, requireProfile } from "@/lib/auth";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { normalizePhone } from "@/lib/phone";
 import { deleteCalendarEvent, unitColorId, upsertCalendarEvent } from "@/lib/google-calendar";
-import { sendWhatsAppMessage } from "@/lib/whatsapp/meta-client";
+import { sendTemplateMessage } from "@/lib/whatsapp/meta-client";
 import { STUDIO_OFFSET } from "@/lib/date";
 
 export type AppointmentFormState = {
@@ -68,8 +68,8 @@ async function notifyAdminsOfAppointmentCreated(
     if (!info) return;
 
     const collaboratorName = info.collaborator?.full_name || "Colaborador(a)";
-    const unitName = info.unit?.name ? ` (${info.unit.name})` : "";
-    const message = `Agendamento criado: ${collaboratorName} — ${info.client_name}${unitName}.`;
+    const unitName = info.unit?.name || "—";
+    const message = `Agendamento criado: ${collaboratorName} — ${info.client_name} (${unitName}).`;
 
     const admin = createAdminClient();
     const { data: admins } = await admin
@@ -89,11 +89,18 @@ async function notifyAdminsOfAppointmentCreated(
     );
 
     // Envio imediato (não pela fila diária do cron) — best-effort, uma
-    // falha de WhatsApp não afeta o sininho nem o agendamento.
+    // falha de WhatsApp não afeta o sininho nem o agendamento. Usa modelo
+    // aprovado pela Meta (funciona mesmo fora da janela de 24h).
     await Promise.all(
       admins
         .filter((a) => a.whatsapp_phone)
-        .map((a) => sendWhatsAppMessage(a.whatsapp_phone!, message).catch(() => null))
+        .map((a) =>
+          sendTemplateMessage(a.whatsapp_phone!, "agendamento_criado_admin", [
+            collaboratorName,
+            info.client_name,
+            unitName,
+          ]).catch(() => null)
+        )
     );
   } catch {
     // best-effort — não deixa um erro de notificação impedir o agendamento

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Appointment } from "@/lib/types/database";
+import { collaboratorColor } from "@/lib/collaborator-color";
 import {
   STUDIO_TZ,
   formatMonthLabel,
@@ -10,6 +11,8 @@ import {
   shiftMonth,
   todayParam,
 } from "@/lib/date";
+
+const MAX_DOTS_PER_DAY = 6;
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -29,15 +32,21 @@ export async function MonthView({
   const supabase = await createClient();
   let query = supabase
     .from("appointments")
-    .select("starts_at, status")
+    .select("starts_at, status, collaborator_id, collaborator:profiles(full_name)")
     .gte("starts_at", start.toISOString())
     .lt("starts_at", end.toISOString());
   if (macaOnly) query = query.not("maca_id", "is", null);
   const { data: appointments } = await query.returns<
-    Pick<Appointment, "starts_at" | "status">[]
+    (Pick<Appointment, "starts_at" | "status" | "collaborator_id"> & {
+      collaborator: { full_name: string } | null;
+    })[]
   >();
 
   const countByDay = new Map<string, { total: number; ativos: number }>();
+  const collaboratorsByDay = new Map<
+    string,
+    Map<string, { id: string; name: string }>
+  >();
   for (const appt of appointments ?? []) {
     const day = new Date(appt.starts_at).toLocaleDateString("en-CA", {
       timeZone: STUDIO_TZ,
@@ -46,6 +55,15 @@ export async function MonthView({
     entry.total += 1;
     if (appt.status !== "cancelado") entry.ativos += 1;
     countByDay.set(day, entry);
+
+    if (appt.status !== "cancelado") {
+      const people = collaboratorsByDay.get(day) ?? new Map();
+      people.set(appt.collaborator_id, {
+        id: appt.collaborator_id,
+        name: appt.collaborator?.full_name ?? "",
+      });
+      collaboratorsByDay.set(day, people);
+    }
   }
 
   const grid = monthGridDays(monthParam);
@@ -93,11 +111,13 @@ export async function MonthView({
           const inMonth = dayParam.slice(0, 7) === monthParam;
           const stats = countByDay.get(dayParam);
           const isToday = dayParam === today;
+          const people = Array.from(collaboratorsByDay.get(dayParam)?.values() ?? []);
 
           return (
             <Link
               key={dayParam}
               href={`${basePath}?date=${dayParam}`}
+              title={people.map((p) => p.name).filter(Boolean).join(", ")}
               className={`flex min-h-20 flex-col gap-1 rounded-lg border p-2 text-left transition hover:border-gold-soft ${
                 inMonth
                   ? "border-neutral-800 bg-neutral-900/40"
@@ -115,6 +135,21 @@ export async function MonthView({
                 <span className="self-start rounded-full bg-gold-soft/20 px-1.5 py-0.5 text-[11px] text-gold">
                   {stats.ativos} agend.
                 </span>
+              )}
+              {people.length > 0 && (
+                <div className="mt-auto flex flex-wrap gap-1">
+                  {people.slice(0, MAX_DOTS_PER_DAY).map((p) => (
+                    <span
+                      key={p.id}
+                      className={`h-2 w-2 rounded-full ${collaboratorColor(p.id).dot}`}
+                    />
+                  ))}
+                  {people.length > MAX_DOTS_PER_DAY && (
+                    <span className="text-[10px] text-neutral-500">
+                      +{people.length - MAX_DOTS_PER_DAY}
+                    </span>
+                  )}
+                </div>
               )}
             </Link>
           );
