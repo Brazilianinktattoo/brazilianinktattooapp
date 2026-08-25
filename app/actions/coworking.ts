@@ -114,6 +114,35 @@ export async function createPass(
     return { error: "Não foi possível criar o acesso de coworking." };
   }
 
+  // Bloqueia a maca pelo período todo do passe na agenda principal — sem
+  // isso, a reserva só aparecia se o próprio visitante entrasse e
+  // agendasse um horário específico (a maioria só chega e usa, sem passar
+  // por isso), deixando a maca livre pra qualquer outra pessoa agendar em
+  // cima por engano.
+  const { data: placeholderAppt, error: apptError } = await supabase
+    .from("appointments")
+    .insert({
+      collaborator_id: created.user.id,
+      unit_id,
+      maca_id,
+      client_name: guest_name,
+      client_phone: guest_contact,
+      starts_at: starts_at.toISOString(),
+      ends_at: ends_at.toISOString(),
+      notes: "Bloqueio automático — período reservado de coworking.",
+    })
+    .select("id")
+    .single();
+
+  if (apptError || !placeholderAppt) {
+    await supabase.from("coworking_passes").delete().eq("id", pass.id);
+    await admin.auth.admin.deleteUser(created.user.id);
+    const friendlyError = apptError?.message.includes("atravessar a meia-noite")
+      ? "Esse período atravessa a meia-noite — crie um passe separado pra cada dia."
+      : "Não foi possível reservar a maca nesse período — confira se ela já não está ocupada.";
+    return { error: friendlyError };
+  }
+
   const { data: anamnese } = await supabase
     .from("coworking_anamnese_forms")
     .insert({
@@ -143,11 +172,43 @@ export async function reportRevenue(id: string, revenue: number) {
 export async function revokePass(id: string) {
   await requireAdmin();
   const supabase = await createClient();
+  const now = new Date().toISOString();
+
+  const { data: pass } = await supabase
+    .from("coworking_passes")
+    .select("profile_id")
+    .eq("id", id)
+    .maybeSingle();
+
   await supabase
     .from("coworking_passes")
-    .update({ ends_at: new Date().toISOString() })
+    .update({ ends_at: now })
     .eq("id", id);
+
+  // Encurta (ou cancela, se ainda nem tinha começado) o bloqueio da maca
+  // criado junto com o passe, senão a maca continuaria marcada como
+  // ocupada até o horário original mesmo depois da revogação.
+  if (pass?.profile_id) {
+    const { data: appt } = await supabase
+      .from("appointments")
+      .select("id, starts_at")
+      .eq("collaborator_id", pass.profile_id)
+      .eq("status", "confirmado")
+      .maybeSingle();
+
+    if (appt) {
+      if (new Date(appt.starts_at) > new Date(now)) {
+        await supabase.from("appointments").update({ status: "cancelado" }).eq("id", appt.id);
+      } else {
+        await supabase.from("appointments").update({ ends_at: now }).eq("id", appt.id);
+      }
+    }
+  }
+
   revalidatePath("/coworking");
+  revalidatePath("/");
+  revalidatePath("/agenda");
+  revalidatePath("/mapa");
 }
 
 export async function guestLogout() {
