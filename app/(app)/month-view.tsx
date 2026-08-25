@@ -12,7 +12,7 @@ import {
   todayParam,
 } from "@/lib/date";
 
-const MAX_DOTS_PER_DAY = 6;
+const MAX_NAMES_PER_DAY = 3;
 
 const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -118,7 +118,7 @@ export async function MonthView({
               key={dayParam}
               href={`${basePath}?date=${dayParam}`}
               title={people.map((p) => p.name).filter(Boolean).join(", ")}
-              className={`flex min-h-20 flex-col gap-1 rounded-lg border p-2 text-left transition hover:border-gold-soft ${
+              className={`flex min-h-28 flex-col gap-1 rounded-lg border p-2 text-left transition hover:border-gold-soft ${
                 inMonth
                   ? "border-neutral-800 bg-neutral-900/40"
                   : "border-neutral-900 bg-neutral-950/40 opacity-40"
@@ -137,16 +137,21 @@ export async function MonthView({
                 </span>
               )}
               {people.length > 0 && (
-                <div className="mt-auto flex flex-wrap gap-1">
-                  {people.slice(0, MAX_DOTS_PER_DAY).map((p) => (
-                    <span
-                      key={p.id}
-                      className={`h-2 w-2 rounded-full ${collaboratorColor(p.id).dot}`}
-                    />
-                  ))}
-                  {people.length > MAX_DOTS_PER_DAY && (
+                <div className="mt-auto flex flex-col gap-0.5">
+                  {people.slice(0, MAX_NAMES_PER_DAY).map((p) => {
+                    const color = collaboratorColor(p.id);
+                    return (
+                      <span
+                        key={p.id}
+                        className={`truncate rounded px-1 py-0.5 text-[10px] font-medium ${color.bg} ${color.text}`}
+                      >
+                        {p.name.split(" ")[0] || "—"}
+                      </span>
+                    );
+                  })}
+                  {people.length > MAX_NAMES_PER_DAY && (
                     <span className="text-[10px] text-neutral-500">
-                      +{people.length - MAX_DOTS_PER_DAY}
+                      +{people.length - MAX_NAMES_PER_DAY} mais
                     </span>
                   )}
                 </div>
