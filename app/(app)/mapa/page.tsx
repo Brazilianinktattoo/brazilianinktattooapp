@@ -11,6 +11,7 @@ import {
 } from "@/lib/date";
 import { MonthView } from "../month-view";
 import { YearView } from "../year-view";
+import { collaboratorColor } from "@/lib/collaborator-color";
 import type { AppointmentWithRelations, Maca, Unit } from "@/lib/types/database";
 
 type MapaViewKey = "dia" | "mes" | "ano";
@@ -121,6 +122,7 @@ async function MapaDayView({ dateParam }: { dateParam: string }) {
                                 new Date(prevEnd).getTime()) /
                               60000
                             : 0;
+                          const color = collaboratorColor(appt.collaborator_id);
 
                           return (
                             <div key={appt.id} className="flex flex-col gap-2">
@@ -130,7 +132,9 @@ async function MapaDayView({ dateParam }: { dateParam: string }) {
                                   {formatTime(appt.starts_at)}
                                 </div>
                               )}
-                              <div className="rounded-lg bg-neutral-800 px-3 py-2">
+                              <div
+                                className={`rounded-lg border-l-4 bg-neutral-800 px-3 py-2 ${color.border}`}
+                              >
                                 <div className="text-sm font-medium text-neutral-100">
                                   {formatTime(appt.starts_at)} –{" "}
                                   {formatTime(appt.ends_at)}
@@ -138,7 +142,8 @@ async function MapaDayView({ dateParam }: { dateParam: string }) {
                                 <div className="text-sm text-neutral-300">
                                   {appt.client_name}
                                 </div>
-                                <div className="text-xs text-neutral-500">
+                                <div className="flex items-center gap-1.5 text-xs text-neutral-500">
+                                  <span className={`h-1.5 w-1.5 rounded-full ${color.dot}`} />
                                   {appt.collaborator?.full_name || "—"} ·{" "}
                                   {ROLE_LABEL[appt.collaborator?.role ?? ""] ??
                                     ""}

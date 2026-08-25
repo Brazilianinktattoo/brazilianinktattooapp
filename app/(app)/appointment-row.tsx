@@ -5,6 +5,7 @@ import Link from "next/link";
 import { cancelAppointment, deleteAppointment } from "@/app/actions/agenda";
 import { openComanda } from "@/app/actions/comandas";
 import { STUDIO_TZ } from "@/lib/date";
+import { collaboratorColor } from "@/lib/collaborator-color";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
 // timeZone explícito é obrigatório aqui: sem ele, o servidor (UTC) e o
@@ -38,10 +39,11 @@ export function AppointmentRow({
 }) {
   const [pending, startTransition] = useTransition();
   const cancelled = appointment.status === "cancelado";
+  const color = collaboratorColor(appointment.collaborator_id);
 
   return (
     <tr
-      className={`border-b border-neutral-800 align-top ${
+      className={`border-b border-l-4 border-neutral-800 ${color.border} align-top ${
         cancelled ? "opacity-50" : ""
       }`}
     >
@@ -52,7 +54,8 @@ export function AppointmentRow({
         {appointment.unit?.name ?? "—"}
       </td>
       <td className="py-3 pr-4">
-        <div className="text-neutral-100">
+        <div className="flex items-center gap-1.5 text-neutral-100">
+          <span className={`h-2 w-2 rounded-full ${color.dot}`} />
           {appointment.collaborator?.full_name || "—"}
         </div>
         <div className="text-xs text-neutral-500">
