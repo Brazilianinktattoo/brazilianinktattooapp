@@ -137,7 +137,8 @@ async function MapaDayView({ dateParam }: { dateParam: string }) {
                                 </div>
                               )}
                               <div
-                                className={`rounded-lg border-l-4 bg-neutral-800 px-3 py-2 ${color.border}`}
+                                style={{ borderLeftColor: color.border }}
+                                className="rounded-lg border-l-4 bg-neutral-800 px-3 py-2"
                               >
                                 <div className="text-sm font-medium text-neutral-100">
                                   {formatTime(appt.starts_at)} –{" "}
@@ -147,7 +148,10 @@ async function MapaDayView({ dateParam }: { dateParam: string }) {
                                   {appt.client_name}
                                 </div>
                                 <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-                                  <span className={`h-1.5 w-1.5 rounded-full ${color.dot}`} />
+                                  <span
+                                    style={{ backgroundColor: color.dot }}
+                                    className="h-1.5 w-1.5 rounded-full"
+                                  />
                                   {appt.collaborator?.full_name || "—"} ·{" "}
                                   {ROLE_LABEL[appt.collaborator?.role ?? ""] ??
                                     ""}

@@ -44,7 +44,8 @@ export function AppointmentRow({
 
   return (
     <tr
-      className={`border-b border-l-4 border-neutral-800 ${color.border} align-top ${
+      style={{ borderLeftColor: color.border }}
+      className={`border-b border-l-4 border-neutral-800 align-top ${
         cancelled ? "opacity-50" : ""
       }`}
     >
@@ -56,7 +57,10 @@ export function AppointmentRow({
       </td>
       <td className="py-3 pr-4">
         <div className="flex items-center gap-1.5 text-neutral-100">
-          <span className={`h-2 w-2 rounded-full ${color.dot}`} />
+          <span
+            style={{ backgroundColor: color.dot }}
+            className="h-2 w-2 rounded-full"
+          />
           {appointment.collaborator?.full_name || "—"}
         </div>
         <div className="text-xs text-neutral-500">

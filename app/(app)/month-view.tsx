@@ -146,7 +146,8 @@ export async function MonthView({
                     return (
                       <span
                         key={p.id}
-                        className={`truncate rounded px-1 py-0.5 text-[10px] font-medium ${color.bg} ${color.text}`}
+                        style={{ backgroundColor: color.bg, color: color.text }}
+                        className="truncate rounded px-1 py-0.5 text-[10px] font-medium"
                       >
                         {p.name.split(" ")[0] || "—"}
                       </span>

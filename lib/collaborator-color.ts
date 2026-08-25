@@ -5,43 +5,50 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 // Cor por colaborador/visitante — facilita bater o olho na agenda/mapa e
 // ver rapidamente quem está em cada horário/maca.
-const PALETTE = [
-  { bg: "bg-blue-500/15", text: "text-blue-400", dot: "bg-blue-400", border: "border-l-blue-500" },
-  { bg: "bg-emerald-500/15", text: "text-emerald-400", dot: "bg-emerald-400", border: "border-l-emerald-500" },
-  { bg: "bg-amber-500/15", text: "text-amber-400", dot: "bg-amber-400", border: "border-l-amber-500" },
-  { bg: "bg-pink-500/15", text: "text-pink-400", dot: "bg-pink-400", border: "border-l-pink-500" },
-  { bg: "bg-purple-500/15", text: "text-purple-400", dot: "bg-purple-400", border: "border-l-purple-500" },
-  { bg: "bg-cyan-500/15", text: "text-cyan-400", dot: "bg-cyan-400", border: "border-l-cyan-500" },
-  { bg: "bg-orange-500/15", text: "text-orange-400", dot: "bg-orange-400", border: "border-l-orange-500" },
-  { bg: "bg-lime-500/15", text: "text-lime-400", dot: "bg-lime-400", border: "border-l-lime-500" },
-  { bg: "bg-fuchsia-500/15", text: "text-fuchsia-400", dot: "bg-fuchsia-400", border: "border-l-fuchsia-500" },
-  { bg: "bg-sky-500/15", text: "text-sky-400", dot: "bg-sky-400", border: "border-l-sky-500" },
-  { bg: "bg-red-500/15", text: "text-red-400", dot: "bg-red-400", border: "border-l-red-500" },
-  { bg: "bg-teal-500/15", text: "text-teal-400", dot: "bg-teal-400", border: "border-l-teal-500" },
-  { bg: "bg-indigo-500/15", text: "text-indigo-400", dot: "bg-indigo-400", border: "border-l-indigo-500" },
-  { bg: "bg-rose-500/15", text: "text-rose-400", dot: "bg-rose-400", border: "border-l-rose-500" },
-  { bg: "bg-yellow-500/15", text: "text-yellow-400", dot: "bg-yellow-400", border: "border-l-yellow-500" },
-  { bg: "bg-violet-500/15", text: "text-violet-400", dot: "bg-violet-400", border: "border-l-violet-500" },
-] as const;
+//
+// Gerada em HSL a partir de um índice, girando pelo "ângulo dourado"
+// (137.508°) a cada pessoa — isso espalha as cores ao redor do círculo
+// cromático da forma mais uniforme possível, então não existe um número
+// fixo de cores que "acaba": por mais colaboradores que o estúdio tenha,
+// sempre dá pra gerar mais uma cor bem distinta da anterior. Usa estilo
+// inline (não classe do Tailwind) justamente por isso — não dá pra
+// pré-listar classes pra um número ilimitado de pessoas.
+export type CollaboratorColor = {
+  bg: string;
+  text: string;
+  dot: string;
+  border: string;
+};
 
-export type CollaboratorColor = (typeof PALETTE)[number];
+const GOLDEN_ANGLE = 137.508;
+
+function colorFromHue(hue: number): CollaboratorColor {
+  const h = ((hue % 360) + 360) % 360;
+  return {
+    bg: `hsl(${h} 65% 50% / 0.15)`,
+    text: `hsl(${h} 75% 72%)`,
+    dot: `hsl(${h} 75% 60%)`,
+    border: `hsl(${h} 75% 55%)`,
+  };
+}
 
 // Fallback por hash — usado quando não temos o mapa de cores dos
 // colaboradores fixos à mão (ou pra visitantes, que são muitos e passageiros
-// demais pra merecer uma cor garantida e exclusiva).
+// demais pra merecer uma posição garantida e exclusiva no giro).
 export function collaboratorColor(id: string): CollaboratorColor {
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     hash = (hash * 31 + id.charCodeAt(i)) >>> 0;
   }
-  return PALETTE[hash % PALETTE.length];
+  return colorFromHue(hash % 360);
 }
 
 const STAFF_ROLES: UserRole[] = ["admin", "tatuador", "piercer", "chefe_piercing"];
 
 // Cor garantida sem repetição pra cada colaborador fixo ativo — atribuída
-// pela ordem alfabética do nome, então é estável entre renderizações
-// (não muda de um carregamento de página pro outro).
+// pela ordem alfabética do nome (índice * ângulo dourado), então é estável
+// entre renderizações e nunca colide, não importa quantos colaboradores
+// existam.
 export async function getStaffColorMap(
   supabase: SupabaseServerClient
 ): Promise<Map<string, CollaboratorColor>> {
@@ -54,7 +61,7 @@ export async function getStaffColorMap(
 
   const map = new Map<string, CollaboratorColor>();
   (data ?? []).forEach((p: { id: string }, i: number) => {
-    map.set(p.id, PALETTE[i % PALETTE.length]);
+    map.set(p.id, colorFromHue(i * GOLDEN_ANGLE));
   });
   return map;
 }
