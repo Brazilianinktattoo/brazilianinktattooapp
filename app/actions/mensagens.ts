@@ -63,11 +63,18 @@ export async function createPromoBroadcast(
 ): Promise<PromoBroadcastState> {
   const { user } = await requireAdmin();
 
-  const body = String(formData.get("body") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  const tattoo_offer = String(formData.get("tattoo_offer") ?? "").trim();
+  const piercing_offer = String(formData.get("piercing_offer") ?? "").trim();
   const unit_id = String(formData.get("unit_id") ?? "") || null;
   const inactiveDaysRaw = String(formData.get("inactive_days") ?? "").trim();
 
-  if (!body) return { error: "Escreva a mensagem." };
+  if (!title || !tattoo_offer || !piercing_offer) {
+    return { error: "Preencha o título e as ofertas de tatuagem e piercing." };
+  }
+
+  const template_params = [title, tattoo_offer, piercing_offer];
+  const body = `${title}\n\nTatuagem: ${tattoo_offer}\nPiercing: ${piercing_offer}`;
 
   const supabase = await createClient();
 
@@ -118,6 +125,7 @@ export async function createPromoBroadcast(
     client_id,
     kind: "promocao",
     body,
+    template_params,
     status: "pendente" as const,
     scheduled_for,
     created_by: user.id,

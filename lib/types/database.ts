@@ -135,6 +135,7 @@ export type MessageQueueItem = {
   kind: string;
   comanda_id: string | null;
   body: string;
+  template_params: string[] | null;
   status: MessageQueueStatus;
   scheduled_for: string;
   created_by: string | null;

@@ -21,18 +21,47 @@ export function PromoComposer({ units }: { units: Unit[] }) {
       className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5"
     >
       <div className="flex flex-col gap-1.5">
-        <label htmlFor="body" className="text-sm text-neutral-300">
-          Mensagem
+        <label htmlFor="title" className="text-sm text-neutral-300">
+          Título da data comemorativa
         </label>
-        <textarea
-          id="body"
-          name="body"
-          rows={3}
+        <input
+          id="title"
+          name="title"
           required
-          placeholder="Ex: Essa semana temos 20% de desconto em piercings! Vem nos visitar 💉"
+          placeholder="Ex: Halloween chegando! 🎃"
           className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-gold"
         />
       </div>
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="tattoo_offer" className="text-sm text-neutral-300">
+            Oferta — Tatuagem
+          </label>
+          <input
+            id="tattoo_offer"
+            name="tattoo_offer"
+            required
+            placeholder="Ex: 20% de desconto"
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-gold"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="piercing_offer" className="text-sm text-neutral-300">
+            Oferta — Piercing
+          </label>
+          <input
+            id="piercing_offer"
+            name="piercing_offer"
+            required
+            placeholder="Ex: 50% de desconto"
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-gold"
+          />
+        </div>
+      </div>
+      <p className="text-xs text-neutral-500">
+        Se não tiver oferta pra um dos dois, escreva algo como "sem promoção
+        dessa vez" nesse campo.
+      </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="unit_id" className="text-sm text-neutral-300">

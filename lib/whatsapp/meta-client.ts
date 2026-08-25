@@ -48,6 +48,13 @@ export const MESSAGE_TEMPLATES: MessageTemplateDef[] = [
     exampleParams: ["Maria"],
   },
   {
+    name: "promocao_sazonal",
+    category: "MARKETING",
+    bodyText:
+      "🎉 {{1}}\n\nCondições especiais da nossa equipe:\n🖋️ Tatuagem: {{2}}\n💎 Piercing: {{3}}\n\nEntre em contato conosco pra aproveitar! 🖤",
+    exampleParams: ["Halloween chegando! 🎃", "20% de desconto", "50% de desconto"],
+  },
+  {
     name: "pos_tattoo_dia1",
     category: "UTILITY",
     bodyText:

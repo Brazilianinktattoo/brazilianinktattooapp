@@ -66,13 +66,16 @@ export async function dispatchPendingBatch(): Promise<DispatchResult> {
     }
 
     const template = TEMPLATE_BY_KIND[item.kind];
-    const result = template
-      ? await sendTemplateMessage(
-          item.client.phone,
-          template.name,
-          template.withName ? [item.client.full_name.split(" ")[0]] : []
-        )
-      : await sendWhatsAppMessage(item.client.phone, item.body);
+    const result =
+      item.kind === "promocao" && item.template_params
+        ? await sendTemplateMessage(item.client.phone, "promocao_sazonal", item.template_params)
+        : template
+          ? await sendTemplateMessage(
+              item.client.phone,
+              template.name,
+              template.withName ? [item.client.full_name.split(" ")[0]] : []
+            )
+          : await sendWhatsAppMessage(item.client.phone, item.body);
 
     if (result.ok) {
       await supabase
