@@ -11,7 +11,7 @@ import {
 } from "@/lib/date";
 import { MonthView } from "../month-view";
 import { YearView } from "../year-view";
-import { collaboratorColor } from "@/lib/collaborator-color";
+import { getStaffColorMap, resolveCollaboratorColor } from "@/lib/collaborator-color";
 import type { AppointmentWithRelations, Maca, Unit } from "@/lib/types/database";
 
 type MapaViewKey = "dia" | "mes" | "ano";
@@ -35,7 +35,7 @@ async function MapaDayView({ dateParam }: { dateParam: string }) {
   const { start, end } = dayBounds(dateParam);
 
   const supabase = await createClient();
-  const [{ data: units }, { data: macas }, { data: appointments }] =
+  const [{ data: units }, { data: macas }, { data: appointments }, staffColorMap] =
     await Promise.all([
       supabase.from("units").select("*").order("name").returns<Unit[]>(),
       supabase
@@ -54,6 +54,7 @@ async function MapaDayView({ dateParam }: { dateParam: string }) {
         .eq("status", "confirmado")
         .order("starts_at", { ascending: true })
         .returns<AppointmentWithRelations[]>(),
+      getStaffColorMap(supabase),
     ]);
 
   const byMaca = new Map<string, AppointmentWithRelations[]>();
@@ -122,7 +123,10 @@ async function MapaDayView({ dateParam }: { dateParam: string }) {
                                 new Date(prevEnd).getTime()) /
                               60000
                             : 0;
-                          const color = collaboratorColor(appt.collaborator_id);
+                          const color = resolveCollaboratorColor(
+                            appt.collaborator_id,
+                            staffColorMap
+                          );
 
                           return (
                             <div key={appt.id} className="flex flex-col gap-2">

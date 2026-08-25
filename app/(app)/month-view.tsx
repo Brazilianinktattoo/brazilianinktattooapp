@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Appointment } from "@/lib/types/database";
-import { collaboratorColor } from "@/lib/collaborator-color";
+import { getStaffColorMap, resolveCollaboratorColor } from "@/lib/collaborator-color";
 import {
   STUDIO_TZ,
   formatMonthLabel,
@@ -36,11 +36,14 @@ export async function MonthView({
     .gte("starts_at", start.toISOString())
     .lt("starts_at", end.toISOString());
   if (macaOnly) query = query.not("maca_id", "is", null);
-  const { data: appointments } = await query.returns<
-    (Pick<Appointment, "starts_at" | "status" | "collaborator_id"> & {
-      collaborator: { full_name: string } | null;
-    })[]
-  >();
+  const [{ data: appointments }, staffColorMap] = await Promise.all([
+    query.returns<
+      (Pick<Appointment, "starts_at" | "status" | "collaborator_id"> & {
+        collaborator: { full_name: string } | null;
+      })[]
+    >(),
+    getStaffColorMap(supabase),
+  ]);
 
   const countByDay = new Map<string, { total: number; ativos: number }>();
   const collaboratorsByDay = new Map<
@@ -139,7 +142,7 @@ export async function MonthView({
               {people.length > 0 && (
                 <div className="mt-auto flex flex-col gap-0.5">
                   {people.slice(0, MAX_NAMES_PER_DAY).map((p) => {
-                    const color = collaboratorColor(p.id);
+                    const color = resolveCollaboratorColor(p.id, staffColorMap);
                     return (
                       <span
                         key={p.id}

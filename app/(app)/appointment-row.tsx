@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cancelAppointment, deleteAppointment } from "@/app/actions/agenda";
 import { openComanda } from "@/app/actions/comandas";
 import { STUDIO_TZ } from "@/lib/date";
-import { collaboratorColor } from "@/lib/collaborator-color";
+import type { CollaboratorColor } from "@/lib/collaborator-color";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 
 // timeZone explícito é obrigatório aqui: sem ele, o servidor (UTC) e o
@@ -31,15 +31,16 @@ export function AppointmentRow({
   canEdit,
   isAdmin,
   roleLabel,
+  color,
 }: {
   appointment: AppointmentWithRelations;
   canEdit: boolean;
   isAdmin: boolean;
   roleLabel: Record<string, string>;
+  color: CollaboratorColor;
 }) {
   const [pending, startTransition] = useTransition();
   const cancelled = appointment.status === "cancelado";
-  const color = collaboratorColor(appointment.collaborator_id);
 
   return (
     <tr

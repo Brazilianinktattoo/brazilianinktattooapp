@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Appointment } from "@/lib/types/database";
-import { collaboratorColor } from "@/lib/collaborator-color";
+import { getStaffColorMap, resolveCollaboratorColor } from "@/lib/collaborator-color";
 import { STUDIO_TZ, monthOf, shiftYear, todayParam, yearBounds } from "@/lib/date";
 
 const MAX_NAMES_PER_MONTH = 8;
@@ -41,11 +41,14 @@ export async function YearView({
     .gte("starts_at", start.toISOString())
     .lt("starts_at", end.toISOString());
   if (macaOnly) query = query.not("maca_id", "is", null);
-  const { data: appointments } = await query.returns<
-    (Pick<Appointment, "starts_at" | "status" | "collaborator_id"> & {
-      collaborator: { full_name: string } | null;
-    })[]
-  >();
+  const [{ data: appointments }, staffColorMap] = await Promise.all([
+    query.returns<
+      (Pick<Appointment, "starts_at" | "status" | "collaborator_id"> & {
+        collaborator: { full_name: string } | null;
+      })[]
+    >(),
+    getStaffColorMap(supabase),
+  ]);
 
   const countByMonth = new Map<number, { total: number; ativos: number }>();
   const collaboratorsByMonth = new Map<
@@ -126,7 +129,7 @@ export async function YearView({
               {people.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1">
                   {people.slice(0, MAX_NAMES_PER_MONTH).map((p) => {
-                    const color = collaboratorColor(p.id);
+                    const color = resolveCollaboratorColor(p.id, staffColorMap);
                     return (
                       <span
                         key={p.id}

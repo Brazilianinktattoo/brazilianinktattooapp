@@ -3,6 +3,7 @@ import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { AppointmentWithRelations } from "@/lib/types/database";
 import { dayBounds, formatDateLabel, shiftDate, todayParam } from "@/lib/date";
+import { getStaffColorMap, resolveCollaboratorColor } from "@/lib/collaborator-color";
 import { AppointmentRow } from "./appointment-row";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -30,15 +31,18 @@ export async function DayView({
   const { start, end } = dayBounds(dateParam);
 
   const supabase = await createClient();
-  const { data: appointments } = await supabase
-    .from("appointments")
-    .select(
-      "*, collaborator:profiles!appointments_collaborator_id_fkey(id, full_name, role), maca:macas(id, label), unit:units(id, name)"
-    )
-    .gte("starts_at", start.toISOString())
-    .lt("starts_at", end.toISOString())
-    .order("starts_at", { ascending: true })
-    .returns<AppointmentWithRelations[]>();
+  const [{ data: appointments }, staffColorMap] = await Promise.all([
+    supabase
+      .from("appointments")
+      .select(
+        "*, collaborator:profiles!appointments_collaborator_id_fkey(id, full_name, role), maca:macas(id, label), unit:units(id, name)"
+      )
+      .gte("starts_at", start.toISOString())
+      .lt("starts_at", end.toISOString())
+      .order("starts_at", { ascending: true })
+      .returns<AppointmentWithRelations[]>(),
+    getStaffColorMap(supabase),
+  ]);
 
   const list = appointments ?? [];
 
@@ -104,6 +108,7 @@ export async function DayView({
                 }
                 isAdmin={profile.role === "admin"}
                 roleLabel={ROLE_LABEL}
+                color={resolveCollaboratorColor(appt.collaborator_id, staffColorMap)}
               />
             ))}
           </tbody>
