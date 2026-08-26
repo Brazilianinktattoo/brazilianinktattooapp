@@ -80,3 +80,32 @@ export async function setJewelryActive(id: string, active: boolean) {
   await supabase.from("jewelry_catalog").update({ active }).eq("id", id);
   revalidatePath("/joias");
 }
+
+export type DeleteJewelryResult = { error?: string };
+
+// Só apaga de verdade jóias sem histórico — se já foi usada em alguma
+// comanda, o banco bloqueia (foreign key) e orientamos a desativar em vez
+// de excluir, pra não perder registro financeiro.
+export async function deleteJewelryCatalogItem(id: string): Promise<DeleteJewelryResult> {
+  await requireAdminOrChefePiercing();
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("jewelry_catalog")
+    .delete({ count: "exact" })
+    .eq("id", id);
+
+  if (error) {
+    if (error.code === "23503") {
+      return {
+        error: "Essa jóia já foi usada em comandas — desative em vez de excluir.",
+      };
+    }
+    return { error: "Não foi possível excluir a jóia." };
+  }
+  if (!count) {
+    return { error: "Sem permissão pra excluir essa jóia." };
+  }
+
+  revalidatePath("/joias");
+  return {};
+}

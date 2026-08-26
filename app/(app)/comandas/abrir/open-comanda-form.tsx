@@ -35,7 +35,7 @@ export function OpenComandaForm({
     initialState
   );
   const [unitId, setUnitId] = useState(units.length === 1 ? units[0].id : "");
-  const [involvesPiercing, setInvolvesPiercing] = useState(hasAnamnese);
+  const [serviceType, setServiceType] = useState(hasAnamnese ? "perfuracao" : "venda_joia");
   const macasInUnit = useMemo(
     () => macas.filter((m) => m.unit_id === unitId),
     [macas, unitId]
@@ -56,21 +56,29 @@ export function OpenComandaForm({
 
       {isPiercingRole && (
         <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
-          <label className="flex items-start gap-2 text-sm text-neutral-300">
-            <input
-              type="checkbox"
-              name="involves_piercing"
-              checked={involvesPiercing}
-              disabled={!hasAnamnese}
-              onChange={(e) => setInvolvesPiercing(e.target.checked)}
-              className="mt-0.5"
-            />
-            Este atendimento envolve perfuração?
+          <label htmlFor="service_type" className="text-sm text-neutral-300">
+            Tipo de atendimento
           </label>
+          <select
+            id="service_type"
+            name="service_type"
+            value={serviceType}
+            onChange={(e) => setServiceType(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-gold"
+          >
+            <option value="perfuracao" disabled={!hasAnamnese}>
+              Perfuração / outro procedimento invasivo
+            </option>
+            <option value="venda_joia">Venda de jóia</option>
+            <option value="troca_joia">Troca de jóia</option>
+            <option value="retirada_joia">Retirada de jóia</option>
+            <option value="recolocacao_joia">Recolocação de jóia</option>
+            <option value="led_terapia">Led Terapia</option>
+          </select>
           <p className="mt-1 text-xs text-neutral-500">
             {hasAnamnese
-              ? "Desmarque se for só venda/troca de jóia ou outro serviço sem perfuração — nesse caso a ficha de anamnese não é exigida."
-              : `${clientName} ainda não tem ficha de anamnese. Sem perfuração no atendimento (só jóia/outro serviço), pode abrir a comanda mesmo assim.`}
+              ? 'Só "Perfuração / outro procedimento invasivo" exige ficha de anamnese assinada — os demais tipos abrem direto, só com nome e telefone.'
+              : `${clientName} ainda não tem ficha de anamnese. Escolha um dos tipos sem perfuração pra abrir mesmo assim, ou gere e assine a ficha antes.`}
           </p>
         </div>
       )}

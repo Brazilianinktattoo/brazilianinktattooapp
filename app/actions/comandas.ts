@@ -53,6 +53,14 @@ export type OpenComandaFromClientState = {
   error?: string;
 };
 
+const SERVICE_TYPE_LABEL: Record<string, string> = {
+  venda_joia: "Venda de jóia",
+  troca_joia: "Troca de jóia",
+  retirada_joia: "Retirada de jóia",
+  recolocacao_joia: "Recolocação de jóia",
+  led_terapia: "Led Terapia",
+};
+
 // Abre uma comanda sem agendamento prévio — a única exigência é uma ficha
 // de anamnese já assinada pra esse telefone. Cria um agendamento "de
 // bastidores" (mesma estrutura de sempre, horário = agora) só pra manter a
@@ -120,10 +128,11 @@ export async function openComandaFromClient(
     .maybeSingle();
 
   // Chefe de Piercing/Body Piercer só precisam da ficha quando o
-  // atendimento envolve perfuração — venda avulsa de jóia ou outro
-  // serviço não exige. Tatuador/Admin continuam exigindo sempre.
-  const involvesPiercing = formData.get("involves_piercing") === "on";
-  const requiresAnamnese = !isPiercingRole || involvesPiercing;
+  // atendimento é uma perfuração de verdade — venda/troca/retirada/
+  // recolocação de jóia e Led Terapia não são procedimento invasivo e
+  // dispensam anamnese. Tatuador/Admin continuam exigindo sempre.
+  const serviceType = String(formData.get("service_type") ?? "perfuracao");
+  const requiresAnamnese = !isPiercingRole || serviceType === "perfuracao";
 
   if (requiresAnamnese && !anamnese) {
     return {
@@ -132,7 +141,13 @@ export async function openComandaFromClient(
     };
   }
 
-  const { data: existingClient } = await supabase
+  // Client de admin — o Chefe de Piercing pode estar atendendo pela
+  // primeira vez um cliente que só tinha histórico de tatuagem até agora;
+  // a RLS de clients só libera esse cargo pra quem já tem histórico de
+  // piercing, então essa busca (só id, pra vincular o agendamento) usa o
+  // client admin pra não travar antes mesmo do primeiro atendimento.
+  const admin = createAdminClient();
+  const { data: existingClient } = await admin
     .from("clients")
     .select("id")
     .eq("phone", client_phone)
@@ -154,7 +169,7 @@ export async function openComandaFromClient(
       client_is_own: anamnese?.client_origin === "trazido_pelo_tatuador",
       notes: anamnese
         ? "Comanda aberta direto da ficha de anamnese, sem agendamento prévio."
-        : "Comanda aberta sem agendamento prévio — sem perfuração, ficha de anamnese não exigida.",
+        : `Comanda aberta sem agendamento prévio — tipo: ${SERVICE_TYPE_LABEL[serviceType] ?? serviceType}, ficha de anamnese não exigida.`,
       starts_at: now.toISOString(),
       ends_at: oneHourLater.toISOString(),
       total_amount,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateServicePrice, setServiceActive } from "@/app/actions/services";
+import { updateServicePrice, setServiceActive, deleteService } from "@/app/actions/services";
 import type { Service } from "@/lib/types/database";
 
 const SUBCATEGORY_LABEL: Record<string, string> = {
@@ -15,6 +15,8 @@ export function ServiceRow({ service }: { service: Service }) {
   const [price, setPrice] = useState(service.price);
   const [active, setActive] = useState(service.active);
   const [pending, startTransition] = useTransition();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   return (
     <tr className="border-b border-neutral-800">
@@ -64,6 +66,24 @@ export function ServiceRow({ service }: { service: Service }) {
         >
           {active ? "Ativo" : "Desativado"}
         </button>
+      </td>
+      <td className="py-3 pr-4">
+        <button
+          type="button"
+          disabled={deleting}
+          onClick={async () => {
+            if (!confirm(`Excluir definitivamente "${service.name}"?`)) return;
+            setDeleting(true);
+            setDeleteError(null);
+            const result = await deleteService(service.id);
+            setDeleting(false);
+            if (result.error) setDeleteError(result.error);
+          }}
+          className="text-xs text-neutral-500 hover:text-red-400 disabled:opacity-60"
+        >
+          {deleting ? "Excluindo..." : "Excluir"}
+        </button>
+        {deleteError && <p className="mt-1 text-xs text-red-400">{deleteError}</p>}
       </td>
     </tr>
   );

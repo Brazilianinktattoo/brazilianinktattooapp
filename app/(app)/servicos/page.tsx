@@ -41,6 +41,7 @@ export default async function ServicosPage() {
               <th className="py-3 pl-4 pr-4 font-medium">Serviço</th>
               <th className="py-3 pr-4 font-medium">Preço (R$)</th>
               <th className="py-3 pr-4 font-medium">Status</th>
+              <th className="py-3 pr-4 font-medium" />
             </tr>
           </thead>
           <tbody>

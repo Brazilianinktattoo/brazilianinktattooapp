@@ -73,3 +73,32 @@ export async function setServiceActive(id: string, active: boolean) {
   await supabase.from("services").update({ active }).eq("id", id);
   revalidatePath("/servicos");
 }
+
+export type DeleteServiceResult = { error?: string };
+
+// Só apaga de verdade serviços sem histórico — se já foi usado em alguma
+// comanda, o banco bloqueia (foreign key) e orientamos a desativar em vez
+// de excluir, pra não perder registro financeiro.
+export async function deleteService(id: string): Promise<DeleteServiceResult> {
+  await requireAdminOrChefePiercing();
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("services")
+    .delete({ count: "exact" })
+    .eq("id", id);
+
+  if (error) {
+    if (error.code === "23503") {
+      return {
+        error: "Esse serviço já foi usado em comandas — desative em vez de excluir.",
+      };
+    }
+    return { error: "Não foi possível excluir o serviço." };
+  }
+  if (!count) {
+    return { error: "Sem permissão pra excluir esse serviço." };
+  }
+
+  revalidatePath("/servicos");
+  return {};
+}

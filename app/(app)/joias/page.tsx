@@ -67,6 +67,7 @@ export default async function JoiasPage(props: PageProps<"/joias">) {
               <th className="py-3 pr-2 font-medium">Aplicação</th>
               <th className="py-3 pr-4 font-medium">Troca</th>
               <th className="py-3 pr-4 font-medium">Status</th>
+              <th className="py-3 pr-4 font-medium" />
             </tr>
           </thead>
           <tbody>

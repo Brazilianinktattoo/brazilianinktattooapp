@@ -34,16 +34,31 @@ export default async function ComandasListPage() {
   }
 
   const supabase = await createClient();
+  const isChefePiercing = profile.role === "chefe_piercing";
 
   // Admin tem acesso total a todas as comandas, de qualquer colaborador;
-  // os demais veem só as próprias.
+  // Chefe de Piercing vê as comandas de qualquer body piercer (a RLS já
+  // permite isso — só faltava a lista não filtrar só pelas próprias); os
+  // demais veem só as próprias.
   let query = supabase
     .from("comandas")
     .select(
       "id, status, created_at, charged_amount, appointment:appointments(client_name, starts_at), collaborator:profiles!comandas_collaborator_id_fkey(full_name, role), comanda_services(description, price), comanda_products(quantity, unit_price), comanda_jewelry(value)"
     )
     .order("created_at", { ascending: false });
-  if (!isAdmin) query = query.eq("collaborator_id", user.id);
+  if (isChefePiercing) {
+    query = query.in(
+      "collaborator_id",
+      (
+        await supabase
+          .from("profiles")
+          .select("id")
+          .in("role", ["piercer", "chefe_piercing"])
+      ).data?.map((p) => p.id) ?? []
+    );
+  } else if (!isAdmin) {
+    query = query.eq("collaborator_id", user.id);
+  }
 
   const { data: comandas } = await query.returns<Row[]>();
 
@@ -56,7 +71,9 @@ export default async function ComandasListPage() {
         <p className="text-neutral-400">
           {isAdmin
             ? "Todas as comandas do estúdio, mais recentes primeiro."
-            : "Suas comandas, mais recentes primeiro."}{" "}
+            : isChefePiercing
+              ? "Comandas de todos os body piercers, mais recentes primeiro."
+              : "Suas comandas, mais recentes primeiro."}{" "}
           🟢 fechada (pagamento preenchido) · 🔴 aberta (aguardando
           fechamento).
         </p>
@@ -101,7 +118,7 @@ export default async function ComandasListPage() {
                       ? new Date(c.appointment.starts_at).toLocaleDateString("pt-BR")
                       : "—"}{" "}
                     · {serviceLabel}
-                    {isAdmin && c.collaborator && (
+                    {(isAdmin || isChefePiercing) && c.collaborator && (
                       <>
                         {" "}
                         · {c.collaborator.full_name || "Sem nome"} (

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { updateJewelryFields, setJewelryActive } from "@/app/actions/jewelry";
+import { updateJewelryFields, setJewelryActive, deleteJewelryCatalogItem } from "@/app/actions/jewelry";
 import { JEWELRY_CATEGORIES } from "@/lib/jewelry-import";
 import type { JewelryCatalogItem } from "@/lib/types/database";
 
@@ -62,6 +62,8 @@ function NumberCell({
 export function JewelryRow({ item }: { item: JewelryCatalogItem }) {
   const [active, setActive] = useState(item.active);
   const [pending, startTransition] = useTransition();
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   function commit(field: string, value: string | number) {
     startTransition(() => updateJewelryFields(item.id, { [field]: value }));
@@ -139,6 +141,24 @@ export function JewelryRow({ item }: { item: JewelryCatalogItem }) {
         >
           {active ? "Ativo" : "Desativado"}
         </button>
+      </td>
+      <td className="py-2 pr-4">
+        <button
+          type="button"
+          disabled={deleting}
+          onClick={async () => {
+            if (!confirm(`Excluir definitivamente "${item.name}"?`)) return;
+            setDeleting(true);
+            setDeleteError(null);
+            const result = await deleteJewelryCatalogItem(item.id);
+            setDeleting(false);
+            if (result.error) setDeleteError(result.error);
+          }}
+          className="text-xs text-neutral-500 hover:text-red-400 disabled:opacity-60"
+        >
+          {deleting ? "Excluindo..." : "Excluir"}
+        </button>
+        {deleteError && <p className="mt-1 text-xs text-red-400">{deleteError}</p>}
       </td>
     </tr>
   );
