@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import {
   registerPhoneNumber,
   sendWhatsAppMessage,
+  sendTemplateMessage,
   createMessageTemplate,
   MESSAGE_TEMPLATES,
 } from "@/lib/whatsapp/meta-client";
@@ -46,6 +47,33 @@ export async function sendWhatsAppTestMessage(
     phone,
     "Teste de integração — API oficial do WhatsApp (Brazilian Ink Tattoo)."
   );
+  if (!result.ok) {
+    return { error: result.error };
+  }
+  return { success: true };
+}
+
+export type SendTemplateTestState = {
+  error?: string;
+  success?: boolean;
+};
+
+export async function sendTemplateTestMessage(
+  _prevState: SendTemplateTestState,
+  formData: FormData
+): Promise<SendTemplateTestState> {
+  await requireAdmin();
+
+  const phone = String(formData.get("phone") ?? "").trim();
+  if (!phone) {
+    return { error: "Informe um número de telefone." };
+  }
+
+  const result = await sendTemplateMessage(phone, "agendamento_criado_admin", [
+    "Colaborador Teste",
+    "Cliente Teste",
+    "Downtown",
+  ]);
   if (!result.ok) {
     return { error: result.error };
   }

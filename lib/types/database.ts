@@ -83,6 +83,7 @@ export type Appointment = {
   starts_at: string;
   ends_at: string;
   status: AppointmentStatus;
+  total_amount: number;
   deposit_amount: number;
   deposit_status: DepositStatus;
   // ID do evento espelhado no Google Agenda da unidade (null enquanto não
@@ -222,7 +223,13 @@ export type Comanda = {
 export type ComandaWithRelations = Comanda & {
   appointment: Pick<
     Appointment,
-    "id" | "client_name" | "starts_at" | "client_is_own" | "deposit_amount" | "deposit_status"
+    | "id"
+    | "client_name"
+    | "starts_at"
+    | "client_is_own"
+    | "total_amount"
+    | "deposit_amount"
+    | "deposit_status"
   > | null;
   collaborator: Pick<
     Profile,

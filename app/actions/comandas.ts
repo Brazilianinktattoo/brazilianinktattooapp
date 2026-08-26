@@ -183,7 +183,13 @@ export async function openComandaFromClient(
 export async function deleteComanda(id: string) {
   await requireAdmin();
   const supabase = await createClient();
-  await supabase.from("comandas").delete().eq("id", id);
+  const { error, count } = await supabase
+    .from("comandas")
+    .delete({ count: "exact" })
+    .eq("id", id);
+  if (error || !count) {
+    throw new Error("Não foi possível excluir a comanda.");
+  }
   revalidatePath("/comandas");
   redirect("/comandas");
 }

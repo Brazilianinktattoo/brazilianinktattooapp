@@ -2,6 +2,7 @@ import { requireAdmin } from "@/lib/auth";
 import { RegisterNumberForm } from "./register-number-form";
 import { TestMessageForm } from "./test-message-form";
 import { CreateTemplatesForm } from "./create-templates-form";
+import { TestTemplateForm } from "./test-template-form";
 
 export default async function WhatsAppSetupPage() {
   await requireAdmin();
@@ -43,6 +44,15 @@ export default async function WhatsAppSetupPage() {
           pra aprovar — acompanhe em WhatsApp Manager → Modelos de mensagem.
         </p>
         <CreateTemplatesForm />
+      </div>
+
+      <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
+        <h2 className="font-medium text-white">4. Testar envio via modelo</h2>
+        <p className="mt-1 text-sm text-neutral-400">
+          Diferente do passo 2 (texto livre) — testa o envio real usando um
+          modelo aprovado, do mesmo jeito que as notificações de admin usam.
+        </p>
+        <TestTemplateForm />
       </div>
     </div>
   );

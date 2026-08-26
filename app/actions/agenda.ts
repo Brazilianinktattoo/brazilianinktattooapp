@@ -229,7 +229,10 @@ function readAppointmentForm(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim();
   const starts_at_raw = String(formData.get("starts_at") ?? "");
   const ends_at_raw = String(formData.get("ends_at") ?? "");
-  const deposit_amount_raw = String(formData.get("deposit_amount") ?? "0")
+  const total_amount_raw = String(formData.get("total_amount") ?? "")
+    .trim()
+    .replace(",", ".");
+  const deposit_amount_raw = String(formData.get("deposit_amount") ?? "")
     .trim()
     .replace(",", ".");
   const deposit_status = String(formData.get("deposit_status") ?? "pendente");
@@ -239,10 +242,13 @@ function readAppointmentForm(formData: FormData) {
     !unit_id ||
     !client_name ||
     !starts_at_raw ||
-    !ends_at_raw
+    !ends_at_raw ||
+    total_amount_raw === "" ||
+    deposit_amount_raw === ""
   ) {
     return {
-      error: "Preencha colaborador, unidade, cliente e o horário.",
+      error:
+        "Preencha colaborador, unidade, cliente, horário, valor total e sinal.",
     } as const;
   }
 
@@ -258,7 +264,11 @@ function readAppointmentForm(formData: FormData) {
     return { error: "O horário final precisa ser depois do inicial." } as const;
   }
 
-  const deposit_amount = deposit_amount_raw === "" ? 0 : Number(deposit_amount_raw);
+  const total_amount = Number(total_amount_raw);
+  if (Number.isNaN(total_amount) || total_amount < 0) {
+    return { error: "Valor total inválido." } as const;
+  }
+  const deposit_amount = Number(deposit_amount_raw);
   if (Number.isNaN(deposit_amount) || deposit_amount < 0) {
     return { error: "Valor do sinal inválido." } as const;
   }
@@ -277,6 +287,7 @@ function readAppointmentForm(formData: FormData) {
       notes,
       starts_at: starts_at.toISOString(),
       ends_at: ends_at.toISOString(),
+      total_amount,
       deposit_amount,
       deposit_status: deposit_status as "pago" | "pendente",
     },

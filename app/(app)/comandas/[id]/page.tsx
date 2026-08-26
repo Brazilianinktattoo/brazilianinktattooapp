@@ -44,7 +44,7 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
   const { data: comanda } = await supabase
     .from("comandas")
     .select(
-      "*, appointment:appointments(id, client_name, starts_at, client_is_own, deposit_amount, deposit_status), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role, commission_rate, commission_rate_sales), unit:units(id, name)"
+      "*, appointment:appointments(id, client_name, starts_at, client_is_own, total_amount, deposit_amount, deposit_status), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role, commission_rate, commission_rate_sales), unit:units(id, name)"
     )
     .eq("id", id)
     .maybeSingle<ComandaWithRelations>();
@@ -217,6 +217,18 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
             })}
           </span>
         </div>
+
+        {comanda.appointment?.total_amount ? (
+          <div className="flex items-center justify-between border-t border-neutral-800 pt-2 text-sm text-neutral-300">
+            <span>Valor combinado no agendamento</span>
+            <span className="text-neutral-100">
+              {comanda.appointment.total_amount.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })}
+            </span>
+          </div>
+        ) : null}
 
         {comanda.appointment?.deposit_amount ? (
           <div className="flex items-center justify-between border-t border-neutral-800 pt-2 text-sm text-neutral-300">
