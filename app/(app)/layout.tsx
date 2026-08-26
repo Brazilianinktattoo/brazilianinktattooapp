@@ -176,6 +176,9 @@ export default async function AppLayout({
                   <Link href="/joias" className={NAV_LINK_CLASS}>
                     Jóias
                   </Link>
+                  <Link href="/clientes-piercing" className={NAV_LINK_CLASS}>
+                    Clientes Piercing
+                  </Link>
                   <Link href="/relatorios" className={NAV_LINK_CLASS}>
                     Relatórios
                   </Link>

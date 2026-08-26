@@ -1,12 +1,13 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOrChefePiercing } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { monthStartParam, todayParam } from "@/lib/date";
 import { fetchServiceReportLines } from "@/lib/reports/servicos";
 import { renderServiceReportPdf } from "@/lib/reports/servicos-pdf";
 
 export async function GET(request: NextRequest) {
-  await requireAdmin();
+  const { profile } = await requireAdminOrChefePiercing();
+  const isChefePiercing = profile.role === "chefe_piercing";
 
   const sp = request.nextUrl.searchParams;
   const filters = {
@@ -19,7 +20,8 @@ export async function GET(request: NextRequest) {
   };
 
   const supabase = await createClient();
-  const lines = await fetchServiceReportLines(supabase, filters);
+  const allLines = await fetchServiceReportLines(supabase, filters);
+  const lines = isChefePiercing ? allLines.filter((l) => l.category === "Piercing") : allLines;
   const pdf = await renderServiceReportPdf(lines, filters);
 
   return new NextResponse(new Uint8Array(pdf), {

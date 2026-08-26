@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin, requireClientRegistrar } from "@/lib/auth";
+import { requireAdmin, requireAdminOrChefePiercing, requireClientRegistrar } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { normalizePhone } from "@/lib/phone";
 import { parseCsv } from "@/lib/csv";
@@ -150,7 +150,7 @@ export async function importClientsCsv(
 }
 
 export async function updateClientBirthday(id: string, birthday: string) {
-  await requireAdmin();
+  await requireAdminOrChefePiercing();
   const supabase = await createClient();
   await supabase
     .from("clients")
@@ -160,7 +160,7 @@ export async function updateClientBirthday(id: string, birthday: string) {
 }
 
 export async function updateClientNotes(id: string, notes: string) {
-  await requireAdmin();
+  await requireAdminOrChefePiercing();
   const supabase = await createClient();
   await supabase.from("clients").update({ notes }).eq("id", id);
   revalidatePath("/clientes");

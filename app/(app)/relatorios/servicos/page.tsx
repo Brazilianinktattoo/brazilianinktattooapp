@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOrChefePiercing } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { monthStartParam, todayParam } from "@/lib/date";
 import { fetchServiceReportLines, summarizeServiceReport } from "@/lib/reports/servicos";
@@ -28,7 +28,8 @@ export default async function RelatorioServicosPage(
   props: PageProps<"/relatorios/servicos">
 ) {
   const searchParams = await props.searchParams;
-  await requireAdmin();
+  const { profile } = await requireAdminOrChefePiercing();
+  const isChefePiercing = profile.role === "chefe_piercing";
 
   const str = (k: string) => (typeof searchParams[k] === "string" ? (searchParams[k] as string) : "");
 
@@ -42,16 +43,20 @@ export default async function RelatorioServicosPage(
   };
 
   const supabase = await createClient();
-  const [{ data: collaborators }, { data: units }, lines] = await Promise.all([
+  const [{ data: collaborators }, { data: units }, allLines] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, full_name, role")
-      .in("role", ["tatuador", "piercer", "admin", "chefe_piercing"])
+      .in("role", isChefePiercing ? ["piercer", "chefe_piercing"] : ["tatuador", "piercer", "admin", "chefe_piercing"])
       .order("full_name")
       .returns<Pick<Profile, "id" | "full_name" | "role">[]>(),
     supabase.from("units").select("*").order("name").returns<Unit[]>(),
     fetchServiceReportLines(supabase, filters),
   ]);
+
+  // Chefe de Piercing só vê os dados de piercing, das duas unidades — sem
+  // acesso ao que é de tatuagem.
+  const lines = isChefePiercing ? allLines.filter((l) => l.category === "Piercing") : allLines;
 
   const summary = summarizeServiceReport(lines);
   const exportQuery = buildQuery({
@@ -69,7 +74,9 @@ export default async function RelatorioServicosPage(
         <Link href="/relatorios" className="text-sm text-neutral-500 hover:text-white">
           ← Relatórios
         </Link>
-        <h1 className="mt-1 text-xl font-semibold text-white">Relatório de Serviços</h1>
+        <h1 className="mt-1 text-xl font-semibold text-white">
+          {isChefePiercing ? "Relatório de Serviços — Piercing" : "Relatório de Serviços"}
+        </h1>
         <p className="text-neutral-400">
           Serviços de comandas fechadas, com comissão calculada pela regra do
           estúdio (Barra Shopping 50% linear · Downtown 70% cliente próprio /
@@ -171,19 +178,21 @@ export default async function RelatorioServicosPage(
         </div>
       </form>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className={`grid gap-4 ${isChefePiercing ? "sm:grid-cols-2" : "sm:grid-cols-3"}`}>
         <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
           <h2 className="font-semibold text-white">Total</h2>
           <p className="mt-1 text-sm text-neutral-400">{summary.total.atendimentos} atendimento(s)</p>
           <p className="text-lg font-semibold text-white">{money(summary.total.faturado)}</p>
           <p className="text-sm text-neutral-400">comissão {money(summary.total.comissao)}</p>
         </div>
-        <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
-          <h2 className="font-semibold text-white">Tatuagem</h2>
-          <p className="mt-1 text-sm text-neutral-400">{summary.tatuagem.atendimentos} atendimento(s)</p>
-          <p className="text-lg font-semibold text-white">{money(summary.tatuagem.faturado)}</p>
-          <p className="text-sm text-neutral-400">comissão {money(summary.tatuagem.comissao)}</p>
-        </div>
+        {!isChefePiercing && (
+          <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
+            <h2 className="font-semibold text-white">Tatuagem</h2>
+            <p className="mt-1 text-sm text-neutral-400">{summary.tatuagem.atendimentos} atendimento(s)</p>
+            <p className="text-lg font-semibold text-white">{money(summary.tatuagem.faturado)}</p>
+            <p className="text-sm text-neutral-400">comissão {money(summary.tatuagem.comissao)}</p>
+          </div>
+        )}
         <div className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
           <h2 className="font-semibold text-white">Piercing</h2>
           <p className="mt-1 text-sm text-neutral-400">{summary.piercing.atendimentos} atendimento(s)</p>
