@@ -70,13 +70,25 @@ export async function openComandaFromClient(
   const collaborator_id = String(formData.get("collaborator_id") ?? "") || user.id;
   const unit_id = String(formData.get("unit_id") ?? "");
   const maca_id = String(formData.get("maca_id") ?? "") || null;
-  const deposit_amount = Number(formData.get("deposit_amount") ?? 0) || 0;
+  const total_amount_raw = String(formData.get("total_amount") ?? "").trim().replace(",", ".");
+  const deposit_amount_raw = String(formData.get("deposit_amount") ?? "").trim().replace(",", ".");
   const deposit_status = formData.get("deposit_status") === "pago" ? "pago" : "pendente";
 
   if (!client_name || !client_phone) {
     return { error: "Cliente inválido — volte e tente de novo." };
   }
   if (!unit_id) return { error: "Selecione a unidade." };
+  if (total_amount_raw === "" || deposit_amount_raw === "") {
+    return { error: "Preencha o valor total e o valor do sinal (0,00 se não teve sinal)." };
+  }
+  const total_amount = Number(total_amount_raw);
+  const deposit_amount = Number(deposit_amount_raw);
+  if (Number.isNaN(total_amount) || total_amount < 0) {
+    return { error: "Valor total inválido." };
+  }
+  if (Number.isNaN(deposit_amount) || deposit_amount < 0) {
+    return { error: "Valor do sinal inválido." };
+  }
 
   const supabase = await createClient();
 
@@ -145,6 +157,7 @@ export async function openComandaFromClient(
         : "Comanda aberta sem agendamento prévio — sem perfuração, ficha de anamnese não exigida.",
       starts_at: now.toISOString(),
       ends_at: oneHourLater.toISOString(),
+      total_amount,
       deposit_amount,
       deposit_status,
     })

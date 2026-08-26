@@ -123,6 +123,27 @@ export function OpenComandaForm({
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 rounded-lg border border-neutral-800 p-4">
+        <div className="rounded-lg border border-amber-800 bg-amber-500/10 p-3 text-sm text-amber-300 sm:col-span-2">
+          Preencha os dois valores abaixo pra conseguir abrir a comanda. Se
+          não teve sinal, digite <strong>0,00</strong> no campo do sinal —
+          não deixe em branco.
+        </div>
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <label htmlFor="total_amount" className="text-sm text-neutral-300">
+            Valor total do procedimento (R$)
+          </label>
+          <input
+            id="total_amount"
+            name="total_amount"
+            type="number"
+            min="0"
+            step="0.01"
+            inputMode="decimal"
+            required
+            placeholder="0,00"
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+          />
+        </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="deposit_amount" className="text-sm text-neutral-300">
             Valor do sinal (R$)
@@ -134,9 +155,11 @@ export function OpenComandaForm({
             min="0"
             step="0.01"
             inputMode="decimal"
-            defaultValue={0}
+            required
+            placeholder="0,00"
             className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
           />
+          <p className="text-xs text-neutral-500">0,00 significa que não teve sinal.</p>
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="deposit_status" className="text-sm text-neutral-300">

@@ -260,6 +260,11 @@ export function AppointmentForm({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 rounded-lg border border-neutral-800 p-4">
+        <div className="rounded-lg border border-amber-800 bg-amber-500/10 p-3 text-sm text-amber-300 sm:col-span-2">
+          Preencha os dois valores abaixo pra conseguir salvar o agendamento.
+          Se não teve sinal, digite <strong>0,00</strong> no campo do sinal —
+          não deixe em branco.
+        </div>
         <div className="flex flex-col gap-1.5 sm:col-span-2">
           <label htmlFor="total_amount" className="text-sm text-neutral-300">
             Valor total do procedimento (R$)
@@ -272,7 +277,8 @@ export function AppointmentForm({
             step="0.01"
             inputMode="decimal"
             required
-            defaultValue={appointment?.total_amount ?? 0}
+            placeholder="0,00"
+            defaultValue={appointment?.total_amount}
             className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
           />
         </div>
@@ -288,7 +294,8 @@ export function AppointmentForm({
             step="0.01"
             inputMode="decimal"
             required
-            defaultValue={appointment?.deposit_amount ?? 0}
+            placeholder="0,00"
+            defaultValue={appointment?.deposit_amount}
             className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
           />
           <p className="text-xs text-neutral-500">0,00 significa que não teve sinal.</p>
