@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
   const isChefePiercing = profile.role === "chefe_piercing";
 
   const sp = request.nextUrl.searchParams;
+  const kindParam = sp.get("kind");
   const filters = {
     from: sp.get("from") || monthStartParam(),
     to: sp.get("to") || todayParam(),
@@ -16,7 +17,8 @@ export async function GET(request: NextRequest) {
     unitId: sp.get("unit_id") || undefined,
     serviceQuery: sp.get("service") || undefined,
     clientQuery: sp.get("client") || undefined,
-  };
+    kind: kindParam === "servico" || kindParam === "venda_joia" ? kindParam : undefined,
+  } as const;
 
   const supabase = await createClient();
   const allLines = await fetchServiceReportLines(supabase, filters);

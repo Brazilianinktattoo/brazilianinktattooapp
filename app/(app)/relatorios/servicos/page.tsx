@@ -33,6 +33,7 @@ export default async function RelatorioServicosPage(
 
   const str = (k: string) => (typeof searchParams[k] === "string" ? (searchParams[k] as string) : "");
 
+  const kindParam = str("kind");
   const filters = {
     from: str("from") || monthStartParam(),
     to: str("to") || todayParam(),
@@ -40,6 +41,10 @@ export default async function RelatorioServicosPage(
     unitId: str("unit_id") || undefined,
     serviceQuery: str("service") || undefined,
     clientQuery: str("client") || undefined,
+    kind:
+      kindParam === "servico" || kindParam === "venda_joia"
+        ? (kindParam as "servico" | "venda_joia")
+        : undefined,
   };
 
   const supabase = await createClient();
@@ -66,6 +71,7 @@ export default async function RelatorioServicosPage(
     unit_id: filters.unitId,
     service: filters.serviceQuery,
     client: filters.clientQuery,
+    kind: filters.kind,
   });
 
   return (
@@ -168,6 +174,21 @@ export default async function RelatorioServicosPage(
             className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
           />
         </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="kind" className="text-sm text-neutral-300">
+            Tipo
+          </label>
+          <select
+            id="kind"
+            name="kind"
+            defaultValue={filters.kind ?? ""}
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+          >
+            <option value="">Todos</option>
+            <option value="servico">Serviço</option>
+            <option value="venda_joia">Venda de jóia</option>
+          </select>
+        </div>
         <div className="flex items-end">
           <button
             type="submit"
@@ -224,6 +245,7 @@ export default async function RelatorioServicosPage(
               <th className="py-3 pr-4 font-medium">Unidade</th>
               <th className="py-3 pr-4 font-medium">Colaborador</th>
               <th className="py-3 pr-4 font-medium">Categoria</th>
+              <th className="py-3 pr-4 font-medium">Tipo</th>
               <th className="py-3 pr-4 font-medium">Cliente</th>
               <th className="py-3 pr-4 font-medium">Serviço</th>
               <th className="py-3 pr-4 font-medium">Valor</th>
@@ -239,6 +261,7 @@ export default async function RelatorioServicosPage(
                 <td className="py-3 pr-4 text-neutral-300">{l.unitName}</td>
                 <td className="py-3 pr-4 text-neutral-300">{l.collaboratorName}</td>
                 <td className="py-3 pr-4 text-neutral-300">{l.category}</td>
+                <td className="py-3 pr-4 text-neutral-300">{l.kind}</td>
                 <td className="py-3 pr-4 text-neutral-300">{l.clientName}</td>
                 <td className="py-3 pr-4 text-neutral-300">{l.description}</td>
                 <td className="py-3 pr-4 text-neutral-300">{money(l.price)}</td>

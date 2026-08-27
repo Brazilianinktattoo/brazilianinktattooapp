@@ -7,14 +7,15 @@ function money(v: number) {
 }
 
 const COLS = [
-  { key: "date", label: "Data", width: 55 },
-  { key: "unitName", label: "Unidade", width: 70 },
-  { key: "collaboratorName", label: "Colaborador", width: 90 },
-  { key: "category", label: "Categoria", width: 55 },
-  { key: "clientName", label: "Cliente", width: 85 },
-  { key: "description", label: "Serviço", width: 90 },
-  { key: "price", label: "Valor", width: 55 },
-  { key: "commission", label: "Comissão", width: 60 },
+  { key: "date", label: "Data", width: 50 },
+  { key: "unitName", label: "Unidade", width: 60 },
+  { key: "collaboratorName", label: "Colaborador", width: 80 },
+  { key: "category", label: "Categoria", width: 50 },
+  { key: "kind", label: "Tipo", width: 65 },
+  { key: "clientName", label: "Cliente", width: 75 },
+  { key: "description", label: "Serviço", width: 80 },
+  { key: "price", label: "Valor", width: 50 },
+  { key: "commission", label: "Comissão", width: 55 },
 ] as const;
 
 export function renderServiceReportPdf(
@@ -93,6 +94,7 @@ export function renderServiceReportPdf(
         unitName: line.unitName,
         collaboratorName: line.collaboratorName,
         category: line.category,
+        kind: line.kind,
         clientName: line.clientName,
         description: line.description,
         price: money(line.price),

@@ -1,11 +1,12 @@
 import { rangeBounds } from "@/lib/date";
-import { commissionRate, resolveClientIsOwn } from "@/lib/commission";
+import { commissionRate, resolveClientIsOwn, salesCommissionRate } from "@/lib/commission";
 import { createClient } from "@/lib/supabase/server";
 import type { ClientOrigin } from "@/lib/types/database";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 export type ServiceCategory = "Tatuagem" | "Piercing" | "Outro";
+export type ServiceLineKind = "Serviço" | "Venda de jóia";
 
 export type ServiceReportFilters = {
   from: string;
@@ -14,6 +15,7 @@ export type ServiceReportFilters = {
   unitId?: string;
   serviceQuery?: string;
   clientQuery?: string;
+  kind?: "servico" | "venda_joia";
 };
 
 export type ServiceReportLine = {
@@ -25,6 +27,7 @@ export type ServiceReportLine = {
   collaboratorId: string;
   collaboratorName: string;
   category: ServiceCategory;
+  kind: ServiceLineKind;
   clientName: string;
   description: string;
   price: number;
@@ -41,6 +44,7 @@ type RawComandaRow = {
     full_name: string;
     role: string;
     commission_rate: number | null;
+    commission_rate_sales: number | null;
   } | null;
   appointment:
     | {
@@ -56,6 +60,7 @@ type RawComandaRow = {
       }
     | null;
   comanda_services: { id: string; description: string; price: number }[];
+  comanda_jewelry: { id: string; jewelry_name: string; value: number }[];
 };
 
 // Admin atua como tatuador (mesma comissão/categoria) e Chefe de Piercing
@@ -76,7 +81,7 @@ export async function fetchServiceReportLines(
   const { data } = await supabase
     .from("comandas")
     .select(
-      "id, closed_at, unit:units(id, name), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role, commission_rate), appointment:appointments!comandas_appointment_id_fkey(id, client_name, client_is_own, anamnese_forms(client_origin, signed_at)), comanda_services(id, description, price)"
+      "id, closed_at, unit:units(id, name), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role, commission_rate, commission_rate_sales), appointment:appointments!comandas_appointment_id_fkey(id, client_name, client_is_own, anamnese_forms(client_origin, signed_at)), comanda_services(id, description, price), comanda_jewelry(id, jewelry_name, value)"
     )
     .eq("status", "fechada")
     .gte("closed_at", start.toISOString())
@@ -111,11 +116,34 @@ export async function fetchServiceReportLines(
         collaboratorId: c.collaborator?.id ?? "",
         collaboratorName: c.collaborator?.full_name || "Sem nome",
         category,
+        kind: "Serviço",
         clientName: c.appointment?.client_name ?? "",
         description: s.description,
         price: s.price,
         commissionRate: rate,
         commission: Math.round(s.price * rate * 100) / 100,
+      });
+    }
+    // Venda de jóia usa comissão separada (commission_rate_sales), sem
+    // regra automática por unidade/origem do cliente — mesma lógica já
+    // usada no detalhe da comanda (lib/commission.ts).
+    const salesRate = salesCommissionRate(c.collaborator?.commission_rate_sales);
+    for (const j of c.comanda_jewelry ?? []) {
+      lines.push({
+        comandaId: c.id,
+        serviceId: j.id,
+        date: c.closed_at ?? "",
+        unitId: c.unit?.id ?? "",
+        unitName,
+        collaboratorId: c.collaborator?.id ?? "",
+        collaboratorName: c.collaborator?.full_name || "Sem nome",
+        category,
+        kind: "Venda de jóia",
+        clientName: c.appointment?.client_name ?? "",
+        description: j.jewelry_name,
+        price: j.value,
+        commissionRate: salesRate,
+        commission: Math.round(j.value * salesRate * 100) / 100,
       });
     }
   }
@@ -133,6 +161,11 @@ export async function fetchServiceReportLines(
   if (filters.clientQuery) {
     const q = filters.clientQuery.toLowerCase();
     lines = lines.filter((l) => l.clientName.toLowerCase().includes(q));
+  }
+  if (filters.kind === "servico") {
+    lines = lines.filter((l) => l.kind === "Serviço");
+  } else if (filters.kind === "venda_joia") {
+    lines = lines.filter((l) => l.kind === "Venda de jóia");
   }
 
   lines.sort((a, b) => a.date.localeCompare(b.date));
@@ -175,6 +208,7 @@ export function linesToCsv(lines: ServiceReportLine[]): string {
     "Unidade",
     "Colaborador",
     "Categoria",
+    "Tipo",
     "Cliente",
     "Serviço",
     "Valor (R$)",
@@ -185,6 +219,7 @@ export function linesToCsv(lines: ServiceReportLine[]): string {
     l.unitName,
     l.collaboratorName,
     l.category,
+    l.kind,
     l.clientName,
     l.description,
     money(l.price),

@@ -215,6 +215,21 @@ export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
         </div>
       </div>
 
+      <Link
+        href="/relatorios/servicos"
+        className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 transition hover:border-neutral-600"
+      >
+        <h2 className="font-semibold text-white">
+          {profile.role === "chefe_piercing"
+            ? "Relatório de Serviços — Piercing →"
+            : "Relatório de Serviços →"}
+        </h2>
+        <p className="mt-1 text-sm text-neutral-400">
+          Filtros por unidade, profissional, serviço/venda de jóia e
+          cliente, com comissão e exportação em CSV/PDF.
+        </p>
+      </Link>
+
       {profile.role === "admin" && (
         <>
           <Link
@@ -234,16 +249,6 @@ export default async function RelatoriosPage(props: PageProps<"/relatorios">) {
             <p className="mt-1 text-sm text-neutral-400">
               Receita cruzada por serviço, colaborador, loja e segmento
               (tatuagem/piercing/coworking/curso), com fechamento mensal.
-            </p>
-          </Link>
-          <Link
-            href="/relatorios/servicos"
-            className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 transition hover:border-neutral-600"
-          >
-            <h2 className="font-semibold text-white">Relatório de Serviços →</h2>
-            <p className="mt-1 text-sm text-neutral-400">
-              Tatuagem e piercing juntos, com filtros combináveis, comissão e
-              exportação em CSV/PDF.
             </p>
           </Link>
           <Link
