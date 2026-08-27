@@ -12,6 +12,7 @@ export type CreatePassState = {
   success?: boolean;
   token?: string;
   anamneseToken?: string;
+  reused?: boolean;
 };
 
 const FIXED_FEE_PERIODS: FixedFeePeriod[] = ["hora", "dia", "semana"];
@@ -70,27 +71,60 @@ export async function createPass(
     return { error: "Percentual inválido (0 a 100)." };
   }
 
-  const token = crypto.randomUUID();
-  const password = crypto.randomUUID() + crypto.randomUUID();
-  const email = `coworking-${token}@guests.brazilianink.internal`;
+  const existing_profile_id = String(formData.get("existing_profile_id") ?? "").trim() || null;
 
   const admin = createAdminClient();
-  const { data: created, error: userError } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { full_name: guest_name, role: "visitante" },
-  });
+  const supabase = await createClient();
 
-  if (userError || !created.user) {
-    return { error: "Não foi possível criar o acesso do visitante." };
+  const token = crypto.randomUUID();
+  let profile_id: string;
+  let email: string;
+  let password: string;
+  let createdNewUser = false;
+
+  if (existing_profile_id) {
+    const { data: existingProfile } = await supabase
+      .from("profiles")
+      .select("id, role, active")
+      .eq("id", existing_profile_id)
+      .maybeSingle();
+    if (!existingProfile || existingProfile.role !== "visitante" || !existingProfile.active) {
+      return { error: "Visitante selecionado inválido." };
+    }
+    const { data: existingPass } = await supabase
+      .from("coworking_passes")
+      .select("guest_email, guest_password")
+      .eq("profile_id", existing_profile_id)
+      .limit(1)
+      .maybeSingle();
+    if (!existingPass) {
+      return { error: "Não achei o acesso desse visitante — crie um novo." };
+    }
+    profile_id = existing_profile_id;
+    email = existingPass.guest_email;
+    password = existingPass.guest_password;
+  } else {
+    password = crypto.randomUUID() + crypto.randomUUID();
+    email = `coworking-${token}@guests.brazilianink.internal`;
+
+    const { data: created, error: userError } = await admin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: guest_name, role: "visitante" },
+    });
+
+    if (userError || !created.user) {
+      return { error: "Não foi possível criar o acesso do visitante." };
+    }
+    profile_id = created.user.id;
+    createdNewUser = true;
   }
 
-  const supabase = await createClient();
   const { data: pass, error: passError } = await supabase
     .from("coworking_passes")
     .insert({
-      profile_id: created.user.id,
+      profile_id,
       unit_id,
       maca_id,
       guest_name,
@@ -109,8 +143,9 @@ export async function createPass(
     .single();
 
   if (passError || !pass) {
-    // desfaz o login sombra pra não deixar usuário órfão
-    await admin.auth.admin.deleteUser(created.user.id);
+    // desfaz o login sombra pra não deixar usuário órfão — só se criamos
+    // um novo agora; um visitante reaproveitado continua existindo
+    if (createdNewUser) await admin.auth.admin.deleteUser(profile_id);
     return { error: "Não foi possível criar o acesso de coworking." };
   }
 
@@ -122,7 +157,7 @@ export async function createPass(
   const { data: placeholderAppt, error: apptError } = await supabase
     .from("appointments")
     .insert({
-      collaborator_id: created.user.id,
+      collaborator_id: profile_id,
       unit_id,
       maca_id,
       client_name: guest_name,
@@ -136,7 +171,7 @@ export async function createPass(
 
   if (apptError || !placeholderAppt) {
     await supabase.from("coworking_passes").delete().eq("id", pass.id);
-    await admin.auth.admin.deleteUser(created.user.id);
+    if (createdNewUser) await admin.auth.admin.deleteUser(profile_id);
     const friendlyError = apptError?.message.includes("atravessar a meia-noite")
       ? "Esse período atravessa a meia-noite — crie um passe separado pra cada dia."
       : "Não foi possível reservar a maca nesse período — confira se ela já não está ocupada.";
@@ -154,7 +189,12 @@ export async function createPass(
     .single();
 
   revalidatePath("/coworking");
-  return { success: true, token, anamneseToken: anamnese?.sign_token };
+  return {
+    success: true,
+    token,
+    anamneseToken: anamnese?.sign_token,
+    reused: !createdNewUser,
+  };
 }
 
 export async function reportRevenue(id: string, revenue: number) {
@@ -176,7 +216,7 @@ export async function revokePass(id: string) {
 
   const { data: pass } = await supabase
     .from("coworking_passes")
-    .select("profile_id")
+    .select("profile_id, starts_at, ends_at")
     .eq("id", id)
     .maybeSingle();
 
@@ -186,13 +226,18 @@ export async function revokePass(id: string) {
     .eq("id", id);
 
   // Encurta (ou cancela, se ainda nem tinha começado) o bloqueio da maca
-  // criado junto com o passe, senão a maca continuaria marcada como
-  // ocupada até o horário original mesmo depois da revogação.
+  // criado junto com esse passe específico, senão a maca continuaria
+  // marcada como ocupada até o horário original mesmo depois da
+  // revogação. Casa pelo starts_at/ends_at originais do passe (não só
+  // pelo profile_id) porque agora um mesmo visitante pode ter vários
+  // passes/agendamentos — um por dia reservado.
   if (pass?.profile_id) {
     const { data: appt } = await supabase
       .from("appointments")
       .select("id, starts_at")
       .eq("collaborator_id", pass.profile_id)
+      .eq("starts_at", pass.starts_at)
+      .eq("ends_at", pass.ends_at)
       .eq("status", "confirmado")
       .maybeSingle();
 

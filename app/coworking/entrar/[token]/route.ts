@@ -28,11 +28,30 @@ export async function GET(
 
   if (!pass) return redirectTo("/coworking/entrar/erro", "?motivo=invalido");
 
+  // Um visitante pode ter vários passes (um por dia reservado) sob o mesmo
+  // acesso — o link continua valendo em qualquer um dos dias reservados,
+  // não só no dia em que foi gerado. Libera se QUALQUER passe desse
+  // visitante estiver ativo agora.
+  const { data: allPasses } = await admin
+    .from("coworking_passes")
+    .select("starts_at, ends_at")
+    .eq("profile_id", pass.profile_id)
+    .returns<Pick<CoworkingPass, "starts_at" | "ends_at">[]>();
+
   const now = Date.now();
-  if (now < new Date(pass.starts_at).getTime()) {
-    return redirectTo("/coworking/entrar/erro", "?motivo=ainda-nao");
-  }
-  if (now > new Date(pass.ends_at).getTime()) {
+  const windows = allPasses ?? [pass];
+  const activeNow = windows.some(
+    (p) => now >= new Date(p.starts_at).getTime() && now <= new Date(p.ends_at).getTime()
+  );
+
+  if (!activeNow) {
+    const earliestStart = Math.min(...windows.map((p) => new Date(p.starts_at).getTime()));
+    // now < earliestStart: ainda não começou nenhum dia reservado. Senão,
+    // já passou do último dia ou está num intervalo entre dois dias — nos
+    // dois casos o acesso de agora não está liberado.
+    if (now < earliestStart) {
+      return redirectTo("/coworking/entrar/erro", "?motivo=ainda-nao");
+    }
     return redirectTo("/coworking/entrar/erro", "?motivo=expirado");
   }
 

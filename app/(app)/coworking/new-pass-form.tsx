@@ -6,21 +6,29 @@ import type { Maca, Unit } from "@/lib/types/database";
 
 const initialState: CreatePassState = {};
 
+type ExistingGuest = { id: string; name: string; contact: string };
+
 export function NewPassForm({
   units,
   macas,
+  existingGuests = [],
 }: {
   units: Unit[];
   macas: Maca[];
+  existingGuests?: ExistingGuest[];
 }) {
   const [state, formAction, pending] = useActionState(createPass, initialState);
   const formRef = useRef<HTMLFormElement>(null);
   const [unitId, setUnitId] = useState("");
+  const [mode, setMode] = useState<"novo" | "existente">("novo");
+  const [existingGuestId, setExistingGuestId] = useState("");
 
   const macasInUnit = useMemo(
     () => macas.filter((m) => m.unit_id === unitId),
     [macas, unitId]
   );
+
+  const selectedGuest = existingGuests.find((g) => g.id === existingGuestId);
 
   // `state.success`/`state.token` só viram verdadeiros depois de uma
   // submissão real no navegador, então ler window aqui nunca roda durante o
@@ -44,6 +52,10 @@ export function NewPassForm({
       formRef.current?.reset();
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setUnitId("");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMode("novo");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setExistingGuestId("");
     }
   }, [state]);
 
@@ -53,28 +65,99 @@ export function NewPassForm({
       action={formAction}
       className="grid gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 sm:grid-cols-2"
     >
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="guest_name" className="text-sm text-neutral-300">
-          Nome do visitante
-        </label>
-        <input
-          id="guest_name"
-          name="guest_name"
-          required
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
-        />
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <label htmlFor="guest_contact" className="text-sm text-neutral-300">
-          Contato (opcional)
-        </label>
-        <input
-          id="guest_contact"
-          name="guest_contact"
-          placeholder="Telefone / Instagram / e-mail"
-          className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
-        />
-      </div>
+      {existingGuests.length > 0 && (
+        <div className="sm:col-span-2 flex items-center gap-2 text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              setMode("novo");
+              setExistingGuestId("");
+            }}
+            className={`rounded-lg px-3 py-1.5 ${
+              mode === "novo"
+                ? "bg-gold text-neutral-950"
+                : "border border-neutral-700 text-neutral-300 hover:border-gold-soft"
+            }`}
+          >
+            Visitante novo
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("existente")}
+            className={`rounded-lg px-3 py-1.5 ${
+              mode === "existente"
+                ? "bg-gold text-neutral-950"
+                : "border border-neutral-700 text-neutral-300 hover:border-gold-soft"
+            }`}
+          >
+            Visitante já cadastrado
+          </button>
+        </div>
+      )}
+
+      {mode === "existente" && (
+        <input type="hidden" name="existing_profile_id" value={existingGuestId} />
+      )}
+
+      {mode === "existente" ? (
+        <div className="sm:col-span-2 flex flex-col gap-1.5">
+          <label htmlFor="existing_guest" className="text-sm text-neutral-300">
+            Visitante
+          </label>
+          <select
+            id="existing_guest"
+            required
+            value={existingGuestId}
+            onChange={(e) => setExistingGuestId(e.target.value)}
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+          >
+            <option value="" disabled>
+              Selecione...
+            </option>
+            {existingGuests.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name || "Sem nome"}
+                {g.contact ? ` — ${g.contact}` : ""}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-neutral-500">
+            Adiciona mais um dia reservado ao mesmo acesso/link desse
+            visitante — sem criar um login novo.
+          </p>
+          {selectedGuest && (
+            <>
+              <input type="hidden" name="guest_name" value={selectedGuest.name} />
+              <input type="hidden" name="guest_contact" value={selectedGuest.contact} />
+            </>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="guest_name" className="text-sm text-neutral-300">
+              Nome do visitante
+            </label>
+            <input
+              id="guest_name"
+              name="guest_name"
+              required
+              className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="guest_contact" className="text-sm text-neutral-300">
+              Contato (opcional)
+            </label>
+            <input
+              id="guest_contact"
+              name="guest_contact"
+              placeholder="Telefone / Instagram / e-mail"
+              className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+            />
+          </div>
+        </>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor="unit_id" className="text-sm text-neutral-300">
@@ -221,7 +304,9 @@ export function NewPassForm({
       {link && (
         <div className="sm:col-span-2 rounded-lg border border-green-800 bg-green-500/10 p-3">
           <p className="text-sm text-green-300">
-            Acesso criado! Envie este link pro visitante:
+            {state.reused
+              ? "Dia adicionado ao mesmo acesso! O link antigo desse visitante continua funcionando — ou envie este, se preferir:"
+              : "Acesso criado! Envie este link pro visitante:"}
           </p>
           <div className="mt-1 flex items-center gap-2">
             <input

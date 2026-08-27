@@ -40,17 +40,26 @@ export default async function CoworkingAgendaPage() {
   const { user } = result;
   const supabase = await createClient();
 
-  const { data: pass } = await supabase
+  // Um visitante pode ter vários passes (um por dia reservado) sob o
+  // mesmo acesso — mostra o que está valendo agora; se nenhum estiver
+  // ativo no momento, cai pro mais recente só pra exibir a mensagem de
+  // "expirado" corretamente.
+  const { data: passes } = await supabase
     .from("coworking_passes")
     .select("*, unit:units(id, name, opens_at, closes_at), maca:macas(id, label)")
     .eq("profile_id", user.id)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle<CoworkingPassWithRelations>();
+    .order("starts_at", { ascending: false })
+    .returns<CoworkingPassWithRelations[]>();
 
-  if (!pass) {
+  if (!passes || passes.length === 0) {
     redirect("/coworking/entrar/erro?motivo=invalido");
   }
+
+  const nowMs = Date.now();
+  const pass =
+    passes.find(
+      (p) => nowMs >= new Date(p.starts_at).getTime() && nowMs <= new Date(p.ends_at).getTime()
+    ) ?? passes[0];
 
   const expired = isPassExpired(pass.ends_at);
 
