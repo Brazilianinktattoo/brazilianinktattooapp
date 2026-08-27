@@ -3,6 +3,7 @@ import { requireProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DeleteComandaRowButton } from "./delete-comanda-row-button";
+import { NewComandaQuickForm } from "./new-comanda-quick-form";
 
 function money(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -79,6 +80,8 @@ export default async function ComandasListPage() {
           fechamento).
         </p>
       </div>
+
+      {isAdmin && <NewComandaQuickForm />}
 
       <div className="flex flex-col gap-2">
         {list.map((c) => {
