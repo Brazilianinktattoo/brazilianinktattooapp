@@ -174,7 +174,7 @@ export function CollaboratorRow({
       </td>
 
       <td className="py-3 pr-4">
-        {canChangeRole ? (
+        {canChangeRole && role !== "visitante" ? (
           <select
             value={role}
             disabled={pending}
@@ -273,7 +273,9 @@ export function CollaboratorRow({
 
       {canChangeRole && (
         <td className="py-3 pr-4">
-          {(profile.role === "tatuador" || profile.role === "piercer") && (
+          {isSelf ? (
+            <span className="text-sm text-neutral-600">—</span>
+          ) : (
             <>
               <button
                 type="button"

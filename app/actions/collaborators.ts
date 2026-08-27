@@ -272,39 +272,53 @@ export type DeleteCollaboratorResult = {
   success?: boolean;
 };
 
-// Só existe de verdade pra Tatuador/Body Piercer sem histórico — o banco
-// bloqueia (por design) excluir quem já tem agendamento/comanda vinculada,
-// pra não perder registro financeiro. Nesse caso orientamos a usar
+// Disponível pra qualquer colaborador (inclusive admin, chefe de piercing e
+// visitante/coworking) sem histórico — o banco bloqueia (por design) excluir
+// quem já tem agendamento/comanda/passe de coworking vinculado, pra não
+// perder registro financeiro ou de acesso. Nesse caso orientamos a usar
 // "Desativar", que já existe.
 export async function deleteCollaborator(id: string): Promise<DeleteCollaboratorResult> {
-  await requireAdmin();
+  const { user } = await requireAdmin();
 
-  const targetRole = await getTargetRole(id);
-  if (targetRole !== "tatuador" && targetRole !== "piercer") {
-    return { error: "Só é possível excluir Tatuador ou Body Piercer." };
+  if (id === user.id) {
+    return { error: "Você não pode excluir seu próprio login." };
   }
 
   const supabase = await createClient();
-  const [{ count: apptCount }, { count: comandaCount }] = await Promise.all([
-    supabase
-      .from("appointments")
-      .select("id", { count: "exact", head: true })
-      .eq("collaborator_id", id),
-    supabase
-      .from("comandas")
-      .select("id", { count: "exact", head: true })
-      .eq("collaborator_id", id),
-  ]);
-  if ((apptCount ?? 0) > 0 || (comandaCount ?? 0) > 0) {
+  const [{ count: apptCount }, { count: comandaCount }, { count: passCount }] =
+    await Promise.all([
+      supabase
+        .from("appointments")
+        .select("id", { count: "exact", head: true })
+        .eq("collaborator_id", id),
+      supabase
+        .from("comandas")
+        .select("id", { count: "exact", head: true })
+        .eq("collaborator_id", id),
+      supabase
+        .from("coworking_passes")
+        .select("id", { count: "exact", head: true })
+        .eq("profile_id", id),
+    ]);
+  if ((apptCount ?? 0) > 0 || (comandaCount ?? 0) > 0 || (passCount ?? 0) > 0) {
     return {
       error:
-        "Esse colaborador já tem agendamentos ou comandas — não dá pra excluir sem perder histórico. Use \"Desativar\" em vez disso.",
+        "Esse colaborador já tem agendamentos, comandas ou passe de coworking vinculado — não dá pra excluir sem perder histórico. Use \"Desativar\" em vez disso.",
     };
   }
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.deleteUser(id);
-  if (error) return { error: "Não foi possível excluir o colaborador." };
+  if (error) {
+    const msg = error.message?.toLowerCase() ?? "";
+    if (msg.includes("foreign key") || msg.includes("violates")) {
+      return {
+        error:
+          "Esse colaborador tem histórico vinculado no sistema — não dá pra excluir sem perder registro. Use \"Desativar\" em vez disso.",
+      };
+    }
+    return { error: "Não foi possível excluir o colaborador." };
+  }
 
   revalidatePath("/colaboradores");
   return { success: true };
