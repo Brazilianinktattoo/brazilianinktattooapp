@@ -14,6 +14,7 @@ import { ComandaProducts } from "./comanda-products";
 import { ComandaJewelry } from "./comanda-jewelry";
 import { CloseComandaForm } from "./close-comanda-form";
 import { DeleteComandaButton } from "./delete-comanda-button";
+import { EditComandaDatesForm } from "./edit-comanda-dates-form";
 import { CommissionRow } from "./commission-row";
 import { PAYMENT_METHOD_LABEL } from "@/lib/fees";
 import type { ComandaJewelry as ComandaJewelryRow, JewelryCatalogItem } from "@/lib/types/database";
@@ -62,6 +63,12 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
       profile.role === "admin" ||
       (profile.role === "chefe_piercing" && isPiercingComanda)) &&
     comanda.status === "aberta";
+
+  // Editar as datas de abertura/fechamento é uma permissão separada da
+  // edição normal de itens — vale inclusive pra comanda fechada, que é
+  // justamente o caso de corrigir um horário registrado errado.
+  const canEditDates =
+    profile.role === "admin" || (profile.role === "chefe_piercing" && isPiercingComanda);
 
   // Chefe de Piercing também atua como body piercer (mesma regra usada nos
   // relatórios/comissão) — sem isso, o catálogo de serviços certo (piercing)
@@ -177,8 +184,7 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
             {comanda.status === "aberta" ? "Aberta" : "Fechada"}
           </span>
           {canEdit && <CloseComandaForm comandaId={comanda.id} />}
-          {(profile.role === "admin" ||
-            (profile.role === "chefe_piercing" && isPiercingComanda)) && (
+          {canEditDates && (
             <DeleteComandaButton
               comandaId={comanda.id}
               clientName={comanda.appointment?.client_name ?? "cliente"}
@@ -186,6 +192,14 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
           )}
         </div>
       </div>
+
+      {canEditDates && (
+        <EditComandaDatesForm
+          comandaId={comanda.id}
+          createdAt={comanda.created_at}
+          closedAt={comanda.closed_at}
+        />
+      )}
 
       <ComandaServices
         comandaId={comanda.id}

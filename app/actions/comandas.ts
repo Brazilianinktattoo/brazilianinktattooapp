@@ -8,6 +8,7 @@ import { feeRatePercentFor, computeChargedAmount, PAYMENT_METHOD_LABEL } from "@
 import { commissionRate, resolveClientIsOwn, salesCommissionRate } from "@/lib/commission";
 import { computeCommissionDeadline } from "@/lib/commission-deadline";
 import { normalizePhone } from "@/lib/phone";
+import { STUDIO_OFFSET } from "@/lib/date";
 import { sendTemplateMessage } from "@/lib/whatsapp/meta-client";
 import type { CardFeeRate, ClientOrigin, PaymentMethod } from "@/lib/types/database";
 
@@ -239,6 +240,66 @@ export async function deleteComanda(id: string): Promise<DeleteComandaResult> {
 
   revalidatePath("/comandas");
   redirect("/comandas");
+}
+
+export type UpdateComandaDatesResult = { error?: string; success?: boolean };
+
+// Admin edita a data de qualquer comanda; Chefe de Piercing só as de
+// piercing (mesma regra de comandas_update_own_or_admin) — inclusive
+// fechadas, já que corrigir quando um atendimento realmente aconteceu é
+// exatamente o caso de uso (a trava de "só comanda aberta" é sobre editar
+// serviço/produto/jóia, não sobre isso).
+export async function updateComandaDates(
+  id: string,
+  formData: FormData
+): Promise<UpdateComandaDatesResult> {
+  const { profile } = await requireProfile();
+  if (profile.role !== "admin" && profile.role !== "chefe_piercing") {
+    return { error: "Sem permissão pra editar as datas da comanda." };
+  }
+
+  const createdAtRaw = String(formData.get("created_at") ?? "");
+  const closedAtRaw = String(formData.get("closed_at") ?? "");
+
+  if (!createdAtRaw) return { error: "Preencha a data de abertura." };
+  const created_at = new Date(`${createdAtRaw}:00${STUDIO_OFFSET}`);
+  if (Number.isNaN(created_at.getTime())) {
+    return { error: "Data de abertura inválida." };
+  }
+
+  let closed_at: Date | null = null;
+  if (closedAtRaw) {
+    closed_at = new Date(`${closedAtRaw}:00${STUDIO_OFFSET}`);
+    if (Number.isNaN(closed_at.getTime())) {
+      return { error: "Data de fechamento inválida." };
+    }
+    if (closed_at < created_at) {
+      return { error: "O fechamento não pode ser antes da abertura." };
+    }
+  }
+
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("comandas")
+    .update(
+      { created_at: created_at.toISOString(), closed_at: closed_at?.toISOString() ?? null },
+      { count: "exact" }
+    )
+    .eq("id", id);
+
+  if (error) {
+    return { error: `Não foi possível salvar as datas (${error.message}).` };
+  }
+  if (!count) {
+    return {
+      error:
+        "Sem permissão pra editar essa comanda específica — confere se ela é sua ou de outro body piercer, se você for Chefe de Piercing.",
+    };
+  }
+
+  revalidatePath(`/comandas/${id}`);
+  revalidatePath("/comandas");
+  return { success: true };
 }
 
 export type CloseComandaState = {

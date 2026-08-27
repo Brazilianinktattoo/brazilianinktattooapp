@@ -4,6 +4,23 @@
 export const STUDIO_TZ = "America/Sao_Paulo";
 export const STUDIO_OFFSET = "-03:00";
 
+// Converte um ISO qualquer pro formato que <input type="datetime-local">
+// espera ("YYYY-MM-DDTHH:mm"), já no fuso do estúdio — inverso do padrão
+// `${value}:00${STUDIO_OFFSET}` usado ao salvar esses inputs.
+export function toStudioLocalInputValue(iso: string) {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: STUDIO_TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .format(new Date(iso))
+    .replace(" ", "T");
+}
+
 export function todayParam() {
   return new Intl.DateTimeFormat("en-CA", { timeZone: STUDIO_TZ }).format(
     new Date()
