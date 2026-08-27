@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { DeleteComandaRowButton } from "./delete-comanda-row-button";
 
 function money(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -99,13 +100,19 @@ export default async function ComandasListPage() {
                 ? c.comanda_services[0].description
                 : `${c.comanda_services[0].description} +${c.comanda_services.length - 1}`;
 
+          const isPiercingComanda =
+            c.collaborator?.role === "piercer" || c.collaborator?.role === "chefe_piercing";
+          const canDelete = isAdmin || (isChefePiercing && isPiercingComanda);
+
           return (
-            <Link
+            <div
               key={c.id}
-              href={`/comandas/${c.id}`}
               className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-4 transition hover:border-gold-soft"
             >
-              <div className="flex items-center gap-3">
+              <Link
+                href={`/comandas/${c.id}`}
+                className="flex flex-1 items-center gap-3"
+              >
                 <span aria-hidden className="text-lg leading-none">
                   {c.status === "fechada" ? "🟢" : "🔴"}
                 </span>
@@ -127,8 +134,8 @@ export default async function ComandasListPage() {
                     )}
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
+              </Link>
+              <Link href={`/comandas/${c.id}`} className="flex items-center gap-3">
                 <span className="font-medium text-white">{money(total)}</span>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-medium ${
@@ -139,8 +146,14 @@ export default async function ComandasListPage() {
                 >
                   {c.status === "fechada" ? "Fechada" : "Aberta"}
                 </span>
-              </div>
-            </Link>
+              </Link>
+              {canDelete && (
+                <DeleteComandaRowButton
+                  comandaId={c.id}
+                  clientName={c.appointment?.client_name ?? "cliente"}
+                />
+              )}
+            </div>
           );
         })}
         {list.length === 0 && (
