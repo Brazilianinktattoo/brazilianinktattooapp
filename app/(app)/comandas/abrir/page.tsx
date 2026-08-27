@@ -8,7 +8,8 @@ export default async function AbrirComandaPage(
   props: PageProps<"/comandas/abrir">
 ) {
   const searchParams = await props.searchParams;
-  const { user } = await requireProfile();
+  const { user, profile } = await requireProfile();
+  const isAdmin = profile.role === "admin";
 
   const client_name =
     typeof searchParams.client_name === "string" ? searchParams.client_name : "";
@@ -21,7 +22,7 @@ export default async function AbrirComandaPage(
 
   const supabase = await createClient();
 
-  const [{ data: units }, { data: macas }, { data: collaborator }, { data: anamnese }] =
+  const [{ data: units }, { data: macas }, { data: collaborator }, { data: anamnese }, { data: allCollaborators }] =
     await Promise.all([
       supabase.from("units").select("*").eq("active", true).order("name").returns<Unit[]>(),
       supabase.from("macas").select("*").eq("active", true).order("label").returns<Maca[]>(),
@@ -38,6 +39,14 @@ export default async function AbrirComandaPage(
             .not("signed_at", "is", null)
             .limit(1)
             .maybeSingle()
+        : Promise.resolve({ data: null }),
+      isAdmin
+        ? supabase
+            .from("profiles")
+            .select("id, full_name, role")
+            .in("role", ["admin", "tatuador", "piercer", "chefe_piercing"])
+            .eq("active", true)
+            .order("full_name")
         : Promise.resolve({ data: null }),
     ]);
 
@@ -61,7 +70,7 @@ export default async function AbrirComandaPage(
     );
   }
 
-  if (!anamnese && !isPiercingRole) {
+  if (!anamnese && !isPiercingRole && !isAdmin) {
     return (
       <div className="flex flex-col gap-6">
         <h1 className="text-xl font-semibold text-white">Abrir comanda</h1>
@@ -105,6 +114,7 @@ export default async function AbrirComandaPage(
         clientPhone={client_phone}
         collaboratorId={collaborator_id}
         collaboratorName={collaborator?.full_name || "Sem nome"}
+        collaborators={allCollaborators ?? []}
         units={units ?? []}
         macas={macas ?? []}
         needsMaca={needsMaca}

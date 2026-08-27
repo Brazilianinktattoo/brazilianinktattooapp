@@ -5,15 +5,33 @@ import {
   openComandaFromClient,
   type OpenComandaFromClientState,
 } from "@/app/actions/comandas";
-import type { Maca, Unit } from "@/lib/types/database";
+import type { Maca, Unit, UserRole } from "@/lib/types/database";
 
 const initialState: OpenComandaFromClientState = {};
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: "Admin",
+  tatuador: "Tatuador(a)",
+  piercer: "Body Piercer",
+  chefe_piercing: "Chefe de Piercing",
+};
+
+type CollaboratorOption = { id: string; full_name: string; role: UserRole };
+
+function isPiercing(role: string | undefined) {
+  return role === "piercer" || role === "chefe_piercing";
+}
+
+function needsMacaFor(role: string | undefined) {
+  return role === "tatuador" || role === "admin";
+}
 
 export function OpenComandaForm({
   clientName,
   clientPhone,
   collaboratorId,
   collaboratorName,
+  collaborators = [],
   units,
   macas,
   needsMaca,
@@ -24,6 +42,7 @@ export function OpenComandaForm({
   clientPhone: string;
   collaboratorId: string;
   collaboratorName: string;
+  collaborators?: CollaboratorOption[];
   units: Unit[];
   macas: Maca[];
   needsMaca: boolean;
@@ -36,6 +55,16 @@ export function OpenComandaForm({
   );
   const [unitId, setUnitId] = useState(units.length === 1 ? units[0].id : "");
   const [serviceType, setServiceType] = useState(hasAnamnese ? "perfuracao" : "venda_joia");
+  // Só admin recebe a lista completa (via prop) — pra todo mundo, o
+  // profissional já vem fixo do contexto (própria conta, ou anamnese do
+  // cliente no caso do Chefe de Piercing).
+  const canChooseCollaborator = collaborators.length > 0;
+  const [selectedCollaboratorId, setSelectedCollaboratorId] = useState(collaboratorId);
+  const selectedRole = canChooseCollaborator
+    ? collaborators.find((c) => c.id === selectedCollaboratorId)?.role
+    : undefined;
+  const effectiveNeedsMaca = canChooseCollaborator ? needsMacaFor(selectedRole) : needsMaca;
+  const effectiveIsPiercingRole = canChooseCollaborator ? isPiercing(selectedRole) : isPiercingRole;
   const macasInUnit = useMemo(
     () => macas.filter((m) => m.unit_id === unitId),
     [macas, unitId]
@@ -48,13 +77,36 @@ export function OpenComandaForm({
     >
       <input type="hidden" name="client_name" value={clientName} />
       <input type="hidden" name="client_phone" value={clientPhone} />
-      <input type="hidden" name="collaborator_id" value={collaboratorId} />
 
-      <p className="text-sm text-neutral-400">
-        Profissional: <span className="text-neutral-200">{collaboratorName}</span>
-      </p>
+      {canChooseCollaborator ? (
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="collaborator_id" className="text-sm text-neutral-300">
+            Profissional
+          </label>
+          <select
+            id="collaborator_id"
+            name="collaborator_id"
+            value={selectedCollaboratorId}
+            onChange={(e) => setSelectedCollaboratorId(e.target.value)}
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+          >
+            {collaborators.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.full_name || "Sem nome"} — {ROLE_LABEL[c.role] ?? c.role}
+              </option>
+            ))}
+          </select>
+        </div>
+      ) : (
+        <>
+          <input type="hidden" name="collaborator_id" value={collaboratorId} />
+          <p className="text-sm text-neutral-400">
+            Profissional: <span className="text-neutral-200">{collaboratorName}</span>
+          </p>
+        </>
+      )}
 
-      {isPiercingRole && (
+      {effectiveIsPiercingRole && (
         <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
           <label htmlFor="service_type" className="text-sm text-neutral-300">
             Tipo de atendimento
@@ -83,6 +135,14 @@ export function OpenComandaForm({
         </div>
       )}
 
+      {!effectiveIsPiercingRole && !hasAnamnese && (
+        <p className="rounded-lg border border-amber-800 bg-amber-500/10 p-3 text-sm text-amber-300">
+          {clientName} ainda não tem ficha de anamnese preenchida — só body
+          piercers podem abrir sem ela (nesse caso, escolha esse profissional
+          acima).
+        </p>
+      )}
+
       <div className="flex flex-col gap-1.5">
         <label htmlFor="unit_id" className="text-sm text-neutral-300">
           Unidade
@@ -106,7 +166,7 @@ export function OpenComandaForm({
         </select>
       </div>
 
-      {needsMaca && (
+      {effectiveNeedsMaca && (
         <div className="flex flex-col gap-1.5">
           <label htmlFor="maca_id" className="text-sm text-neutral-300">
             Maca
