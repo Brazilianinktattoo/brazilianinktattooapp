@@ -177,7 +177,8 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
             {comanda.status === "aberta" ? "Aberta" : "Fechada"}
           </span>
           {canEdit && <CloseComandaForm comandaId={comanda.id} />}
-          {profile.role === "admin" && (
+          {(profile.role === "admin" ||
+            (profile.role === "chefe_piercing" && isPiercingComanda)) && (
             <DeleteComandaButton
               comandaId={comanda.id}
               clientName={comanda.appointment?.client_name ?? "cliente"}

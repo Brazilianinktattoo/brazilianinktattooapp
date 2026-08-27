@@ -130,9 +130,12 @@ export async function openComandaFromClient(
   // Chefe de Piercing/Body Piercer só precisam da ficha quando o
   // atendimento é uma perfuração de verdade — venda/troca/retirada/
   // recolocação de jóia e Led Terapia não são procedimento invasivo e
-  // dispensam anamnese. Tatuador/Admin continuam exigindo sempre.
+  // dispensam anamnese. Tatuador/Admin continuam exigindo sempre — a menos
+  // que o admin confirme que o atendimento foi feito com ficha em papel
+  // (atendimento especial fora do fluxo digital normal).
   const serviceType = String(formData.get("service_type") ?? "perfuracao");
-  const requiresAnamnese = !isPiercingRole || serviceType === "perfuracao";
+  const paperAnamnese = profile.role === "admin" && formData.get("paper_anamnese") === "on";
+  const requiresAnamnese = !paperAnamnese && (!isPiercingRole || serviceType === "perfuracao");
 
   if (requiresAnamnese && !anamnese) {
     return {
@@ -169,7 +172,9 @@ export async function openComandaFromClient(
       client_is_own: anamnese?.client_origin === "trazido_pelo_tatuador",
       notes: anamnese
         ? "Comanda aberta direto da ficha de anamnese, sem agendamento prévio."
-        : `Comanda aberta sem agendamento prévio — tipo: ${SERVICE_TYPE_LABEL[serviceType] ?? serviceType}, ficha de anamnese não exigida.`,
+        : paperAnamnese
+          ? "Comanda aberta sem agendamento prévio — atendimento especial com ficha de anamnese em papel (confirmado pelo admin)."
+          : `Comanda aberta sem agendamento prévio — tipo: ${SERVICE_TYPE_LABEL[serviceType] ?? serviceType}, ficha de anamnese não exigida.`,
       starts_at: now.toISOString(),
       ends_at: oneHourLater.toISOString(),
       total_amount,
@@ -208,16 +213,30 @@ export async function openComandaFromClient(
 
 // Exclusão permanente — só Admin. Serviços/produtos/jóias da comanda saem
 // junto (on delete cascade); o agendamento em si não é afetado.
-export async function deleteComanda(id: string) {
-  await requireAdmin();
+export type DeleteComandaResult = { error?: string };
+
+export async function deleteComanda(id: string): Promise<DeleteComandaResult> {
+  const { profile } = await requireProfile();
+  if (profile.role !== "admin" && profile.role !== "chefe_piercing") {
+    return { error: "Sem permissão pra excluir comanda." };
+  }
+
   const supabase = await createClient();
   const { error, count } = await supabase
     .from("comandas")
     .delete({ count: "exact" })
     .eq("id", id);
-  if (error || !count) {
-    throw new Error("Não foi possível excluir a comanda.");
+
+  if (error) {
+    return { error: `Não foi possível excluir a comanda (${error.message}).` };
   }
+  if (!count) {
+    return {
+      error:
+        "Sem permissão pra excluir essa comanda específica — confere se ela é sua ou de outro body piercer, se você for Chefe de Piercing.",
+    };
+  }
+
   revalidatePath("/comandas");
   redirect("/comandas");
 }

@@ -55,6 +55,7 @@ export function OpenComandaForm({
   );
   const [unitId, setUnitId] = useState(units.length === 1 ? units[0].id : "");
   const [serviceType, setServiceType] = useState(hasAnamnese ? "perfuracao" : "venda_joia");
+  const [paperAnamnese, setPaperAnamnese] = useState(false);
   // Só admin recebe a lista completa (via prop) — pra todo mundo, o
   // profissional já vem fixo do contexto (própria conta, ou anamnese do
   // cliente no caso do Chefe de Piercing).
@@ -106,6 +107,26 @@ export function OpenComandaForm({
         </>
       )}
 
+      {canChooseCollaborator && !hasAnamnese && (
+        <label className="flex items-start gap-2 rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 text-sm text-neutral-300">
+          <input
+            type="checkbox"
+            name="paper_anamnese"
+            checked={paperAnamnese}
+            onChange={(e) => setPaperAnamnese(e.target.checked)}
+            className="mt-0.5"
+          />
+          <span>
+            Atendimento especial — ficha de anamnese assinada em papel (não
+            digital)
+            <span className="mt-1 block text-xs text-neutral-500">
+              Marque só se o cliente já assinou uma ficha física de verdade —
+              isso libera abrir a comanda sem a ficha digital.
+            </span>
+          </span>
+        </label>
+      )}
+
       {effectiveIsPiercingRole && (
         <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 p-3">
           <label htmlFor="service_type" className="text-sm text-neutral-300">
@@ -118,7 +139,7 @@ export function OpenComandaForm({
             onChange={(e) => setServiceType(e.target.value)}
             className="mt-1 w-full rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-gold"
           >
-            <option value="perfuracao" disabled={!hasAnamnese}>
+            <option value="perfuracao" disabled={!hasAnamnese && !paperAnamnese}>
               Perfuração / outro procedimento invasivo
             </option>
             <option value="venda_joia">Venda de jóia</option>
@@ -128,18 +149,18 @@ export function OpenComandaForm({
             <option value="led_terapia">Led Terapia</option>
           </select>
           <p className="mt-1 text-xs text-neutral-500">
-            {hasAnamnese
+            {hasAnamnese || paperAnamnese
               ? 'Só "Perfuração / outro procedimento invasivo" exige ficha de anamnese assinada — os demais tipos abrem direto, só com nome e telefone.'
               : `${clientName} ainda não tem ficha de anamnese. Escolha um dos tipos sem perfuração pra abrir mesmo assim, ou gere e assine a ficha antes.`}
           </p>
         </div>
       )}
 
-      {!effectiveIsPiercingRole && !hasAnamnese && (
+      {!effectiveIsPiercingRole && !hasAnamnese && !paperAnamnese && (
         <p className="rounded-lg border border-amber-800 bg-amber-500/10 p-3 text-sm text-amber-300">
           {clientName} ainda não tem ficha de anamnese preenchida — só body
-          piercers podem abrir sem ela (nesse caso, escolha esse profissional
-          acima).
+          piercers podem abrir sem ela, ou marque acima que foi assinada em
+          papel (atendimento especial).
         </p>
       )}
 
