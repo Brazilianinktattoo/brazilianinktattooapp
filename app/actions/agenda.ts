@@ -360,6 +360,22 @@ export async function updateAppointment(
 
   if (error) return { error: friendlyDbError(error.message) };
 
+  // comandas.unit_id/collaborator_id são copiados do agendamento só na
+  // criação (trigger set_comanda_from_appointment) — sem isso, editar a
+  // unidade ou o colaborador de um agendamento que já tem comanda deixava
+  // a comanda presa no valor antigo, divergindo do resto do app (agenda,
+  // mapa, relatórios), que sempre lê o agendamento ao vivo. Best-effort —
+  // o agendamento já foi salvo, então uma falha aqui não pode travar o
+  // fluxo.
+  try {
+    await supabase
+      .from("comandas")
+      .update({ unit_id: parsed.data.unit_id, collaborator_id: parsed.data.collaborator_id })
+      .eq("appointment_id", id);
+  } catch {
+    // ignorado de propósito — ver comentário acima
+  }
+
   await syncAppointmentToCalendar(supabase, id);
 
   revalidatePath("/");
