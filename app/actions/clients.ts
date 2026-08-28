@@ -26,7 +26,6 @@ export async function createClientManually(
 
   if (!full_name) return { error: "Informe o nome." };
   if (!phone) return { error: "Informe o telefone." };
-  if (!birthday) return { error: "Informe o aniversário." };
 
   const supabase = await createClient();
   const { data: existing } = await supabase
@@ -41,7 +40,7 @@ export async function createClientManually(
   const { error } = await supabase.from("clients").insert({
     full_name,
     phone,
-    birthday,
+    birthday: birthday || null,
     address: address || null,
     email: email || null,
     notes,

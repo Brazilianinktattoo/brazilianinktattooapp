@@ -58,13 +58,12 @@ export function NewClientForm({ defaultOpen = false }: { defaultOpen?: boolean }
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="birthday" className="text-sm text-neutral-300">
-            Aniversário
+            Aniversário (opcional)
           </label>
           <input
             id="birthday"
             name="birthday"
             type="date"
-            required
             className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-sm text-neutral-100 outline-none focus:border-gold [color-scheme:dark]"
           />
         </div>
