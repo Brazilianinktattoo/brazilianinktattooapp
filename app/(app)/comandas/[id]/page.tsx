@@ -56,19 +56,23 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
     comanda.collaborator?.role === "piercer" ||
     comanda.collaborator?.role === "chefe_piercing";
 
-  // Chefe de Piercing edita qualquer comanda de piercing (não só as
-  // próprias) — coerente com o acesso total que já tem sobre essa parte.
-  const canEdit =
-    (comanda.collaborator_id === user.id ||
-      profile.role === "admin" ||
-      (profile.role === "chefe_piercing" && isPiercingComanda)) &&
-    comanda.status === "aberta";
-
   // Editar as datas de abertura/fechamento é uma permissão separada da
   // edição normal de itens — vale inclusive pra comanda fechada, que é
   // justamente o caso de corrigir um horário registrado errado.
   const canEditDates =
     profile.role === "admin" || (profile.role === "chefe_piercing" && isPiercingComanda);
+
+  // Chefe de Piercing edita qualquer comanda de piercing (não só as
+  // próprias) — coerente com o acesso total que já tem sobre essa parte.
+  // Admin/Chefe de Piercing também podem editar serviço/produto/jóia numa
+  // comanda já fechada (mesmo grupo do canEditDates) — pra corrigir um
+  // lançamento que já saiu errado num relatório; o resto do time continua
+  // travado assim que fecha.
+  const canEdit =
+    (comanda.collaborator_id === user.id ||
+      profile.role === "admin" ||
+      (profile.role === "chefe_piercing" && isPiercingComanda)) &&
+    (comanda.status === "aberta" || canEditDates);
 
   // Chefe de Piercing também atua como body piercer (mesma regra usada nos
   // relatórios/comissão) — sem isso, o catálogo de serviços certo (piercing)
@@ -183,7 +187,14 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
           >
             {comanda.status === "aberta" ? "Aberta" : "Fechada"}
           </span>
-          {canEdit && <CloseComandaForm comandaId={comanda.id} />}
+          {canEdit && (
+            <CloseComandaForm
+              comandaId={comanda.id}
+              alreadyClosed={comanda.status === "fechada"}
+              defaultMethod={comanda.payment_method ?? "pix"}
+              defaultInstallments={comanda.installments}
+            />
+          )}
           {canEditDates && (
             <DeleteComandaButton
               comandaId={comanda.id}
