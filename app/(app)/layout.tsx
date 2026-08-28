@@ -74,7 +74,8 @@ export default async function AppLayout({
                 href={
                   profile.role === "admin" ||
                   profile.role === "tatuador" ||
-                  profile.role === "piercer"
+                  profile.role === "piercer" ||
+                  profile.role === "chefe_piercing"
                     ? "/agenda"
                     : "/"
                 }
