@@ -10,6 +10,7 @@ import { mapCsvRow } from "@/lib/clients-import";
 export type CreateClientState = {
   error?: string;
   success?: boolean;
+  existingClient?: { full_name: string; phone: string };
 };
 
 export async function createClientManually(
@@ -30,11 +31,14 @@ export async function createClientManually(
   const supabase = await createClient();
   const { data: existing } = await supabase
     .from("clients")
-    .select("id")
+    .select("id, full_name")
     .eq("phone", phone)
     .maybeSingle();
   if (existing) {
-    return { error: "Já existe um cliente cadastrado com esse telefone." };
+    return {
+      error: "Já existe um cliente cadastrado com esse telefone.",
+      existingClient: { full_name: existing.full_name || "Sem nome", phone },
+    };
   }
 
   const { error } = await supabase.from("clients").insert({

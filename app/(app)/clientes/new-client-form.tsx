@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { createClientManually, type CreateClientState } from "@/app/actions/clients";
 
 const initialState: CreateClientState = {};
@@ -100,7 +101,26 @@ export function NewClientForm({ defaultOpen = false }: { defaultOpen?: boolean }
         </div>
       </div>
 
-      {state.error && <p className="text-sm text-red-400">{state.error}</p>}
+      {state.error && (
+        <div className="rounded-lg border border-red-800 bg-red-500/10 p-3">
+          <p className="text-sm text-red-400">{state.error}</p>
+          {state.existingClient && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-neutral-300">
+                {state.existingClient.full_name} já está cadastrado(a) —
+              </span>
+              <Link
+                href={`/comandas/abrir?client_name=${encodeURIComponent(
+                  state.existingClient.full_name
+                )}&client_phone=${encodeURIComponent(state.existingClient.phone)}`}
+                className="rounded-lg bg-gradient-to-b from-gold-strong to-gold px-3 py-1.5 text-sm font-medium text-neutral-950 transition hover:to-copper"
+              >
+                Abrir comanda pra ele(a)
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
       {state.success && <p className="text-sm text-green-400">Cliente salvo.</p>}
 
       <div className="flex items-center gap-3">
