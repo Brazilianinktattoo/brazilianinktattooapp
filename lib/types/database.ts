@@ -160,6 +160,12 @@ export type Notification = {
   created_at: string;
 };
 
+export type WhatsappWebhookEvent = {
+  id: string;
+  payload: unknown;
+  created_at: string;
+};
+
 export type DocumentFolder = {
   id: string;
   name: string;
@@ -629,6 +635,12 @@ export type Database = {
         Row: Notification;
         Insert: Partial<Notification> & { profile_id: string; message: string };
         Update: Partial<Notification>;
+        Relationships: [];
+      };
+      whatsapp_webhook_events: {
+        Row: WhatsappWebhookEvent;
+        Insert: Partial<WhatsappWebhookEvent> & { payload: unknown };
+        Update: Partial<WhatsappWebhookEvent>;
         Relationships: [];
       };
       document_folders: {
