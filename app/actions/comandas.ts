@@ -218,7 +218,14 @@ export async function openComandaFromClient(
     .single();
 
   if (comandaError || !comanda) {
-    return { error: "Não foi possível abrir a comanda." };
+    // Sem isso, o agendamento (já criado acima) ficava órfão — sem
+    // comanda nenhuma vinculada, mas ainda "confirmado" e travando a
+    // agenda do colaborador pro resto da janela, sem nenhum jeito de ver
+    // isso ou desfazer pela tela.
+    await supabase.from("appointments").delete().eq("id", appointment.id);
+    return {
+      error: `Não foi possível criar a comanda (${comandaError?.message ?? "motivo desconhecido"}).`,
+    };
   }
 
   await notifyAdminsOfComandaOpened(supabase, comanda.id);
