@@ -132,6 +132,9 @@ async function upsertClientForAppointment(
     if (birthday && !existing.birthday) patch.birthday = birthday;
     if (Object.keys(patch).length > 0) {
       await supabase.from("clients").update(patch).eq("id", existing.id);
+      if (patch.full_name) {
+        await notifyAdminsOfClientRename(existing.full_name, patch.full_name, normalizedPhone);
+      }
     }
     return existing.id;
   }
@@ -148,6 +151,40 @@ async function upsertClientForAppointment(
     .single();
 
   return created?.id ?? null;
+}
+
+// Telefone já cadastrado com um nome diferente do digitado agora —
+// upsertClientForAppointment já corrige sozinho pro nome mais recente
+// (evita ficar preso com um nome errado pra sempre), mas isso pode também
+// ser um erro de digitação sobrescrevendo um cadastro correto. Avisa o
+// admin pra conferir. Best-effort, só o sininho (sem WhatsApp — não tem
+// modelo aprovado pra esse formato de mensagem).
+async function notifyAdminsOfClientRename(
+  oldName: string,
+  newName: string,
+  phone: string
+) {
+  try {
+    const admin = createAdminClient();
+    const { data: admins } = await admin
+      .from("profiles")
+      .select("id")
+      .eq("role", "admin")
+      .eq("active", true);
+
+    if (!admins || admins.length === 0) return;
+
+    const message = `⚠️ Cliente renomeado automaticamente ao agendar: "${oldName}" → "${newName}" (telefone ${phone}) — confira se é a mesma pessoa e corrija se não for.`;
+
+    await admin.from("notifications").insert(
+      admins.map((a) => ({
+        profile_id: a.id,
+        message,
+      }))
+    );
+  } catch {
+    // best-effort — não deixa uma falha aqui impedir o agendamento
+  }
 }
 
 // Espelha o agendamento no Google Agenda da unidade (se ela tiver
