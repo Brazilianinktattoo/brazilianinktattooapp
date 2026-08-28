@@ -153,10 +153,20 @@ export async function openComandaFromClient(
   const admin = createAdminClient();
   const { data: existingClient } = await admin
     .from("clients")
-    .select("id")
+    .select("id, full_name")
     .eq("phone", client_phone)
     .maybeSingle();
   const client_id = existingClient?.id ?? null;
+
+  // Telefone já cadastrado, mas com um nome diferente do digitado agora —
+  // pode ser cadastro antigo/importado com nome errado, ou até dois
+  // clientes diferentes usando o mesmo número. Não trava a abertura (o
+  // atendimento não pode esperar), mas avisa o admin pra conferir e
+  // corrigir o cadastro.
+  const nameConflict =
+    existingClient && existingClient.full_name.trim().toLowerCase() !== client_name.trim().toLowerCase()
+      ? existingClient.full_name
+      : null;
 
   // O bloqueio de agenda desse walk-in é só uma formalidade (não reserva
   // maca — maca_id é sempre nulo pra piercing) — mas o banco não deixa o
@@ -228,7 +238,7 @@ export async function openComandaFromClient(
     };
   }
 
-  await notifyAdminsOfComandaOpened(supabase, comanda.id);
+  await notifyAdminsOfComandaOpened(supabase, comanda.id, nameConflict);
 
   revalidatePath("/");
   redirect(`/comandas/${comanda.id}`);
@@ -426,7 +436,8 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 // falha aqui não pode impedir a abertura da comanda.
 async function notifyAdminsOfComandaOpened(
   supabase: SupabaseServerClient,
-  comandaId: string
+  comandaId: string,
+  nameConflict?: string | null
 ) {
   try {
     const { data: info } = await supabase
@@ -447,7 +458,13 @@ async function notifyAdminsOfComandaOpened(
     const collaboratorName = info.collaborator?.full_name || "Colaborador(a)";
     const clientName = info.appointment?.client_name || "cliente";
     const unitName = info.unit?.name || "—";
-    const message = `Comanda aberta: ${collaboratorName} — ${clientName} (${unitName}).`;
+    // Aviso de telefone já cadastrado com outro nome — não bloqueia a
+    // abertura, só sinaliza pro admin conferir/corrigir o cadastro depois.
+    const conflictNote = nameConflict
+      ? ` ⚠️ Esse telefone já estava cadastrado como "${nameConflict}" — confira e corrija o cadastro se for a mesma pessoa.`
+      : "";
+    const message = `Comanda aberta: ${collaboratorName} — ${clientName} (${unitName}).${conflictNote}`;
+    const whatsappClientName = nameConflict ? `${clientName} (nome divergente do cadastro!)` : clientName;
 
     const admin = createAdminClient();
     const { data: admins } = await admin
@@ -475,7 +492,7 @@ async function notifyAdminsOfComandaOpened(
         .map((a) =>
           sendTemplateMessage(a.whatsapp_phone!, "comanda_aberta_admin", [
             collaboratorName,
-            clientName,
+            whatsappClientName,
             unitName,
           ]).catch(() => null)
         )
