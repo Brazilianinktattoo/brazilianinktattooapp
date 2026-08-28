@@ -158,8 +158,20 @@ export async function openComandaFromClient(
     .maybeSingle();
   const client_id = existingClient?.id ?? null;
 
+  // O bloqueio de agenda desse walk-in é só uma formalidade (não reserva
+  // maca — maca_id é sempre nulo pra piercing) — mas o banco não deixa o
+  // MESMO colaborador ter dois agendamentos "confirmado" sobrepostos
+  // (appointments_no_overlap_per_collaborator), então 1h de bloqueio pra
+  // toda venda de jóia/troca/retirada (transação de poucos minutos, às
+  // vezes o cliente só compra e vai embora) fazia a segunda comanda do dia
+  // esbarrar na primeira ainda "aberta" nesse horário. Perfuração continua
+  // com 1h (procedimento de verdade); o resto usa uma janela bem mais
+  // curta.
+  const isQuickTransaction = isPiercingRole && serviceType !== "perfuracao";
+  const blockMinutes = isQuickTransaction ? 15 : 60;
+
   const now = new Date();
-  const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+  const blockEnds = new Date(now.getTime() + blockMinutes * 60 * 1000);
 
   const { data: appointment, error: appointmentError } = await supabase
     .from("appointments")
@@ -177,7 +189,7 @@ export async function openComandaFromClient(
           ? "Comanda aberta sem agendamento prévio — atendimento especial com ficha de anamnese em papel (confirmado pelo admin)."
           : `Comanda aberta sem agendamento prévio — tipo: ${SERVICE_TYPE_LABEL[serviceType] ?? serviceType}, ficha de anamnese não exigida.`,
       starts_at: now.toISOString(),
-      ends_at: oneHourLater.toISOString(),
+      ends_at: blockEnds.toISOString(),
       total_amount,
       deposit_amount,
       deposit_status,
@@ -192,6 +204,9 @@ export async function openComandaFromClient(
       friendlyError = "O agendamento de maca não pode atravessar a meia-noite.";
     } else if (msg.includes("maca")) {
       friendlyError = "Maca inválida pra esse profissional/unidade.";
+    } else if (msg.includes("appointments_no_overlap_per_collaborator")) {
+      friendlyError =
+        "Esse profissional ainda tem outra comanda em andamento nesse horário — feche ou finalize a anterior antes de abrir uma nova, ou espere alguns minutos.";
     }
     return { error: friendlyError };
   }

@@ -1,4 +1,4 @@
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOrChefePiercing } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { rangeBounds } from "@/lib/date";
 import type { Client, Profile } from "@/lib/types/database";
@@ -8,7 +8,8 @@ import { CsvImportForm } from "./csv-import-form";
 
 export default async function ClientesPage(props: PageProps<"/clientes">) {
   const searchParams = await props.searchParams;
-  await requireAdmin();
+  const { profile } = await requireAdminOrChefePiercing();
+  const isAdmin = profile.role === "admin";
   const q = typeof searchParams.q === "string" ? searchParams.q.trim() : "";
   const from = typeof searchParams.from === "string" ? searchParams.from : "";
   const to = typeof searchParams.to === "string" ? searchParams.to : "";
@@ -119,9 +120,11 @@ export default async function ClientesPage(props: PageProps<"/clientes">) {
 
       <div className="flex flex-col gap-4 sm:flex-row">
         <NewClientForm />
-        <div className="flex-1">
-          <CsvImportForm />
-        </div>
+        {isAdmin && (
+          <div className="flex-1">
+            <CsvImportForm />
+          </div>
+        )}
       </div>
 
       <form className="flex flex-wrap items-end gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">
