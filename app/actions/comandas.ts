@@ -485,8 +485,10 @@ async function notifyAdminsOfComandaOpened(
 
     // Envio imediato (não pela fila diária do cron) — best-effort, uma
     // falha de WhatsApp não afeta o sininho nem a abertura da comanda. Usa
-    // modelo aprovado pela Meta (funciona mesmo fora da janela de 24h).
-    await Promise.all(
+    // modelo aprovado pela Meta (funciona mesmo fora da janela de 24h). O
+    // erro real (se houver) vem no próprio retorno de sendTemplateMessage —
+    // sem logar isso, uma falha ficava completamente invisível.
+    const results = await Promise.all(
       admins
         .filter((a) => a.whatsapp_phone)
         .map((a) =>
@@ -494,9 +496,12 @@ async function notifyAdminsOfComandaOpened(
             collaboratorName,
             whatsappClientName,
             unitName,
-          ]).catch(() => null)
+          ]).catch((err) => ({ ok: false as const, error: String(err) }))
         )
     );
+    for (const r of results) {
+      if (!r.ok) console.error("whatsapp: falha ao notificar admin (comanda)", r.error);
+    }
   } catch {
     // best-effort — não deixa um erro de notificação impedir a abertura
   }
