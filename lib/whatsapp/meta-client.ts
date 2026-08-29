@@ -84,6 +84,12 @@ export const MESSAGE_TEMPLATES: MessageTemplateDef[] = [
     bodyText:
       "Olá! Já se passaram 60 dias da sua tattoo — esperamos que esteja 100% cicatrizada e que você esteja curtindo muito o resultado 🖤\n\nFicamos muito felizes em fazer parte dessa marca na sua história. Se puder, adoraríamos ver como ficou — manda uma fotinho pra gente!\n\nSempre que quiser voltar pra fazer mais uma, é só chamar. Um abraço da família Brazilian Ink Tattoo! 🖤",
   },
+  {
+    name: "cuidados_pos_lobuloplastia",
+    category: "UTILITY",
+    bodyText:
+      "Cuidados pós-lobulomodelação auricular 🖤\n\nCurativo: mantenha por 7 dias e não molhe em hipótese alguma — pode interferir no resultado e infeccionar o local.\n\n- Após 7 dias, use Cicaplast Baume B5 (La Roche-Posay) 2x ao dia\n- Use protetor solar se for se expor ao sol (senão a pele escurece)\n- Não use álcool, iodo, água oxigenada ou outra pomada além da indicada\n- Não use maquiagem ou perfume no local\n- Não arranque as casquinhas — faz parte da cicatrização\n- Não abra o furo pra ver se fechou\n- Evite sol no primeiro mês\n- A partir do 7º dia, no banho, pode higienizar com sabonete neutro, sem esfregar\n- Não use brincos no furo durante o tratamento\n- Envie foto semanalmente pra equipe\n\nRetorno para a próxima sessão: 30 dias. Qualquer dúvida, fale com a gente! 🖤",
+  },
 ];
 
 // Ativação única do número na API oficial da Meta — precisa rodar uma vez

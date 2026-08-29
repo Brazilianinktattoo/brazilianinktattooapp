@@ -102,9 +102,14 @@ export default async function AppLayout({
               {(profile.role === "admin" ||
                 profile.role === "chefe_piercing" ||
                 profile.role === "piercer") && (
-                <Link href="/arquivos" className={NAV_LINK_CLASS}>
-                  Arquivos
-                </Link>
+                <>
+                  <Link href="/arquivos" className={NAV_LINK_CLASS}>
+                    Arquivos
+                  </Link>
+                  <Link href="/lobuloplastia" className={NAV_LINK_CLASS}>
+                    Lobuloplastia
+                  </Link>
+                </>
               )}
               {profile.role === "tatuador" && (
                 <>

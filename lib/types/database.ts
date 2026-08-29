@@ -382,6 +382,43 @@ export type AnamneseFormWithAppointment = AnamneseForm & {
   appointment: Pick<Appointment, "id" | "client_name" | "starts_at"> | null;
 };
 
+export type LobuloplastiaForm = {
+  id: string;
+  collaborator_id: string | null;
+  full_name: string;
+  birth_date: string | null;
+  cpf: string | null;
+  rg: string | null;
+  phone: string;
+  social_media: string | null;
+  address: string | null;
+  cep: string | null;
+  city: string | null;
+  health_declaration: HealthDeclaration;
+  fenda_description: string;
+  image_authorization: boolean;
+  sign_token: string;
+  signed_at: string | null;
+  signer_name: string | null;
+  file_path: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type LobuloplastiaEntryKind = "sessao" | "evolucao";
+
+export type LobuloplastiaEntry = {
+  id: string;
+  form_id: string;
+  kind: LobuloplastiaEntryKind;
+  session_number: number | null;
+  description: string | null;
+  entry_date: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
 export type StudentAnamneseForm = {
   id: string;
   student_name: string;
@@ -752,6 +789,18 @@ export type Database = {
         Row: StudentAnamneseForm;
         Insert: Partial<StudentAnamneseForm>;
         Update: Partial<StudentAnamneseForm>;
+        Relationships: [];
+      };
+      lobuloplastia_forms: {
+        Row: LobuloplastiaForm;
+        Insert: Partial<LobuloplastiaForm> & { full_name: string; phone: string };
+        Update: Partial<LobuloplastiaForm>;
+        Relationships: [];
+      };
+      lobuloplastia_entries: {
+        Row: LobuloplastiaEntry;
+        Insert: Partial<LobuloplastiaEntry> & { form_id: string; kind: LobuloplastiaEntryKind };
+        Update: Partial<LobuloplastiaEntry>;
         Relationships: [];
       };
       minor_authorization_forms: {
