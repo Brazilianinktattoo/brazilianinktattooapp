@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdminOrPiercingStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { DocumentFile, DocumentFolder } from "@/lib/types/database";
 import { NewFolderForm } from "./new-folder-form";
@@ -9,7 +9,8 @@ import { FileRow } from "./file-row";
 
 export default async function ArquivosPage(props: PageProps<"/arquivos">) {
   const searchParams = await props.searchParams;
-  await requireAdmin();
+  const { profile } = await requireAdminOrPiercingStaff();
+  const isAdmin = profile.role === "admin";
 
   const folderId =
     typeof searchParams.folderId === "string" ? searchParams.folderId : null;
@@ -61,8 +62,9 @@ export default async function ArquivosPage(props: PageProps<"/arquivos">) {
       <div>
         <h1 className="text-xl font-semibold text-white">Arquivos</h1>
         <p className="text-neutral-400">
-          Documentos digitalizados/arquivados — acesso exclusivo dos
-          administradores.
+          {isAdmin
+            ? "Documentos digitalizados/arquivados."
+            : "Documentos de referência liberados pro seu setor."}
         </p>
       </div>
 
@@ -80,7 +82,7 @@ export default async function ArquivosPage(props: PageProps<"/arquivos">) {
         ))}
       </nav>
 
-      <NewFolderForm parentId={folderId} />
+      {(isAdmin || folderId) && <NewFolderForm parentId={folderId} />}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {(subfolders ?? []).map((folder) => (

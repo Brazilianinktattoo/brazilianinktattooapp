@@ -99,6 +99,13 @@ export default async function AppLayout({
                   Fichas
                 </Link>
               )}
+              {(profile.role === "admin" ||
+                profile.role === "chefe_piercing" ||
+                profile.role === "piercer") && (
+                <Link href="/arquivos" className={NAV_LINK_CLASS}>
+                  Arquivos
+                </Link>
+              )}
               {profile.role === "tatuador" && (
                 <>
                   <Link href="/meus-clientes" className={NAV_LINK_CLASS}>
@@ -150,9 +157,6 @@ export default async function AppLayout({
                   </Link>
                   <Link href="/contas-fixas" className={NAV_LINK_CLASS}>
                     Contas Fixas
-                  </Link>
-                  <Link href="/arquivos" className={NAV_LINK_CLASS}>
-                    Arquivos
                   </Link>
                   <Link href="/comissoes" className={NAV_LINK_CLASS}>
                     Comissões

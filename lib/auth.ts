@@ -62,6 +62,19 @@ export async function requireAdminOrChefePiercing() {
   return result;
 }
 
+// Acesso aos documentos de referência de piercing (ex: Arquivos, pasta
+// "Lobuloplastia") — Chefe de Piercing e Body Piercer, além de admin. A
+// pasta em si é o que realmente escopa o que cada um vê (RLS via
+// piercing_accessible/is_piercing_accessible_folder), isto só barra quem
+// não é nem admin nem staff de piercing de entrar na tela.
+export async function requireAdminOrPiercingStaff() {
+  const result = await requireProfile();
+  if (!["admin", "chefe_piercing", "piercer"].includes(result.profile.role)) {
+    redirect("/");
+  }
+  return result;
+}
+
 // Quem atende cliente pode cadastrar um novo cliente direto do próprio
 // painel, sem passar pela recepção (admin continua podendo tudo).
 export async function requireClientRegistrar() {

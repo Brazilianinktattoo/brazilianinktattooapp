@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireAdminOrPiercingStaff } from "@/lib/auth";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 
 // Reaproveita o bucket 'documentos' já existente (privado, só admin —
@@ -26,7 +26,7 @@ export async function createDocumentFolder(
   _prevState: FolderFormState,
   formData: FormData
 ): Promise<FolderFormState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdminOrPiercingStaff();
   const name = String(formData.get("name") ?? "").trim();
   if (!name) return { error: "Dê um nome pra pasta." };
 
@@ -48,7 +48,7 @@ export async function createDocumentFolder(
 }
 
 export async function renameDocumentFolder(id: string, name: string) {
-  await requireAdmin();
+  await requireAdminOrPiercingStaff();
   if (!name.trim()) return;
   const supabase = await createClient();
   await supabase.from("document_folders").update({ name: name.trim() }).eq("id", id);
@@ -97,7 +97,7 @@ export async function uploadDocumentFile(
   _prevState: UploadFileState,
   formData: FormData
 ): Promise<UploadFileState> {
-  const { user } = await requireAdmin();
+  const { user } = await requireAdminOrPiercingStaff();
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
@@ -174,7 +174,7 @@ export async function replaceDocumentFile(
 }
 
 export async function renameDocumentFile(id: string, name: string) {
-  await requireAdmin();
+  await requireAdminOrPiercingStaff();
   if (!name.trim()) return;
   const supabase = await createClient();
   await supabase.from("document_files").update({ name: name.trim() }).eq("id", id);
@@ -198,7 +198,7 @@ export async function deleteDocumentFile(id: string) {
 }
 
 export async function getDocumentFileUrl(id: string): Promise<string | null> {
-  await requireAdmin();
+  await requireAdminOrPiercingStaff();
   const supabase = await createClient();
   const { data: file } = await supabase
     .from("document_files")
