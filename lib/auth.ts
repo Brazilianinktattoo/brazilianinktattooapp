@@ -85,6 +85,17 @@ export async function requireClientRegistrar() {
   return result;
 }
 
+// Tela pessoal de comissão/produção ("Meu Desempenho") — só quem atende
+// cliente e recebe comissão. Admin fica de fora: já tem /relatorios/servicos,
+// que é estritamente mais poderoso (vê todo mundo, não só a própria conta).
+export async function requireCollaborator() {
+  const result = await requireProfile();
+  if (!["tatuador", "piercer", "chefe_piercing"].includes(result.profile.role)) {
+    redirect("/");
+  }
+  return result;
+}
+
 
 // Chefe de Piercing agora tem agenda/comandas próprias (igual body
 // piercer) — isto só continua bloqueando as telas realmente exclusivas de
