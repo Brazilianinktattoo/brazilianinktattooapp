@@ -231,8 +231,12 @@ export async function openComandaFromClient(
     // Sem isso, o agendamento (já criado acima) ficava órfão — sem
     // comanda nenhuma vinculada, mas ainda "confirmado" e travando a
     // agenda do colaborador pro resto da janela, sem nenhum jeito de ver
-    // isso ou desfazer pela tela.
-    await supabase.from("appointments").delete().eq("id", appointment.id);
+    // isso ou desfazer pela tela. Usa o client admin (bypassa RLS) porque
+    // "appointments_delete_admin" só libera exclusão pra quem é admin —
+    // com o client normal, essa limpeza falhava silenciosamente pra
+    // qualquer outro cargo (tatuador, piercer, chefe_piercing) abrindo a
+    // própria comanda, deixando o fantasma de qualquer jeito.
+    await admin.from("appointments").delete().eq("id", appointment.id);
     return {
       error: `Não foi possível criar a comanda (${comandaError?.message ?? "motivo desconhecido"}).`,
     };
