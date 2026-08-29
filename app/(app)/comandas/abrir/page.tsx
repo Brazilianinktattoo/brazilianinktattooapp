@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { normalizePhone } from "@/lib/phone";
 import type { Maca, Unit } from "@/lib/types/database";
 import { OpenComandaForm } from "./open-comanda-form";
 
@@ -35,7 +36,7 @@ export default async function AbrirComandaPage(
         ? supabase
             .from("anamnese_forms")
             .select("id, deposit_amount")
-            .eq("phone", client_phone)
+            .eq("phone", normalizePhone(client_phone))
             .not("signed_at", "is", null)
             .limit(1)
             .maybeSingle()

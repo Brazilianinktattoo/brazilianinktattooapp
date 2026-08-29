@@ -72,7 +72,7 @@ export async function generateAnamneseForm(
     .insert({
       appointment_id,
       full_name: appointment.client_name,
-      phone: appointment.client_phone,
+      phone: normalizePhone(appointment.client_phone),
     })
     .select("sign_token")
     .single();
@@ -249,7 +249,7 @@ export async function submitAnamneseSignature(
       rg,
       address,
       cep,
-      phone,
+      phone: normalizePhone(phone),
       email,
       is_minor,
       procedure_type,
@@ -434,7 +434,7 @@ export async function submitWalkinAnamnese(
       rg,
       address,
       cep,
-      phone,
+      phone: normalizePhone(phone),
       email,
       is_minor,
       procedure_type,
