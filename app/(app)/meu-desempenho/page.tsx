@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { requireCollaborator } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { formatMonthLabel, monthOf, shiftDate, shiftMonth, todayParam } from "@/lib/date";
+import {
+  formatMonthLabel,
+  formatStudioDate,
+  monthOf,
+  shiftDate,
+  shiftMonth,
+  todayParam,
+} from "@/lib/date";
 import { fetchServiceReportLines, summarizeServiceReport } from "@/lib/reports/servicos";
 
 function money(v: number) {
@@ -110,7 +117,7 @@ export default async function MeuDesempenhoPage(
             {sortedLines.map((l) => (
               <tr key={l.serviceId} className="border-b border-neutral-800">
                 <td className="py-3 pl-4 pr-4 text-neutral-300 whitespace-nowrap">
-                  {l.date ? new Date(l.date).toLocaleDateString("pt-BR") : "—"}
+                  {l.date ? formatStudioDate(l.date) : "—"}
                 </td>
                 <td className="py-3 pr-4 text-neutral-300">{l.clientName}</td>
                 <td className="py-3 pr-4 text-neutral-300">{l.description}</td>

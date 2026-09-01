@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import type { ServiceReportLine } from "@/lib/reports/servicos";
 import { summarizeServiceReport } from "@/lib/reports/servicos";
+import { formatStudioDate } from "@/lib/date";
 
 function money(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -90,7 +91,7 @@ export function renderServiceReportPdf(
       const y = doc.y;
       let x = left;
       const values: Record<string, string> = {
-        date: line.date ? new Date(line.date).toLocaleDateString("pt-BR") : "",
+        date: line.date ? formatStudioDate(line.date) : "",
         unitName: line.unitName,
         collaboratorName: line.collaboratorName,
         category: line.category,

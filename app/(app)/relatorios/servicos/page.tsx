@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdminOrChefePiercing } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { monthStartParam, todayParam } from "@/lib/date";
+import { formatStudioDate, monthStartParam, todayParam } from "@/lib/date";
 import { fetchServiceReportLines, summarizeServiceReport } from "@/lib/reports/servicos";
 import type { Profile, Unit } from "@/lib/types/database";
 
@@ -256,7 +256,7 @@ export default async function RelatorioServicosPage(
             {lines.map((l) => (
               <tr key={l.serviceId} className="border-b border-neutral-800">
                 <td className="py-3 pl-4 pr-4 text-neutral-300 whitespace-nowrap">
-                  {l.date ? new Date(l.date).toLocaleDateString("pt-BR") : "—"}
+                  {l.date ? formatStudioDate(l.date) : "—"}
                 </td>
                 <td className="py-3 pr-4 text-neutral-300">{l.unitName}</td>
                 <td className="py-3 pr-4 text-neutral-300">{l.collaboratorName}</td>

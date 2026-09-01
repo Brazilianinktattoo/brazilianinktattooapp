@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { monthStartParam, todayParam } from "@/lib/date";
+import { formatStudioDate, monthStartParam, todayParam } from "@/lib/date";
 import { fetchBarraShoppingReport, subtotal } from "@/lib/reports/barra-shopping";
 
 function money(v: number) {
@@ -147,7 +147,7 @@ export default async function RelatorioBarraShoppingPage(
                 {block.lines.map((l, i) => (
                   <tr key={i} className="border-b border-neutral-800">
                     <td className="py-3 pl-4 pr-4 text-neutral-300 whitespace-nowrap">
-                      {l.date ? new Date(l.date).toLocaleDateString("pt-BR") : "—"}
+                      {l.date ? formatStudioDate(l.date) : "—"}
                     </td>
                     <td className="py-3 pr-4 text-neutral-300">{l.clientName}</td>
                     <td className="py-3 pr-4 text-neutral-300">{l.description}</td>

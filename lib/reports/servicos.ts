@@ -1,4 +1,4 @@
-import { rangeBounds } from "@/lib/date";
+import { formatStudioDate, rangeBounds } from "@/lib/date";
 import { commissionRate, resolveClientIsOwn, salesCommissionRate } from "@/lib/commission";
 import { createClient } from "@/lib/supabase/server";
 import type { ClientOrigin } from "@/lib/types/database";
@@ -215,7 +215,7 @@ export function linesToCsv(lines: ServiceReportLine[]): string {
     "Comissão (R$)",
   ];
   const rows = lines.map((l) => [
-    l.date ? new Date(l.date).toLocaleDateString("pt-BR") : "",
+    l.date ? formatStudioDate(l.date) : "",
     l.unitName,
     l.collaboratorName,
     l.category,

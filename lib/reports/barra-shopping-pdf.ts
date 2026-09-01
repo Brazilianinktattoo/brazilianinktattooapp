@@ -1,6 +1,7 @@
 import PDFDocument from "pdfkit";
 import type { BarraShoppingReport, BarraShoppingLine } from "@/lib/reports/barra-shopping";
 import { subtotal } from "@/lib/reports/barra-shopping";
+import { formatStudioDate } from "@/lib/date";
 
 function money(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -79,7 +80,7 @@ export function renderBarraShoppingPdf(
         const y = doc.y;
         let x = left;
         const values: Record<string, string> = {
-          date: line.date ? new Date(line.date).toLocaleDateString("pt-BR") : "",
+          date: line.date ? formatStudioDate(line.date) : "",
           clientName: line.clientName,
           description: line.description,
           value: money(line.value),

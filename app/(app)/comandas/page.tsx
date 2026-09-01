@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { formatStudioDate } from "@/lib/date";
 import { DeleteComandaRowButton } from "./delete-comanda-row-button";
 import { NewComandaQuickForm } from "./new-comanda-quick-form";
 
@@ -125,7 +126,7 @@ export default async function ComandasListPage() {
                   </div>
                   <div className="text-xs text-neutral-500">
                     {c.appointment
-                      ? new Date(c.appointment.starts_at).toLocaleDateString("pt-BR")
+                      ? formatStudioDate(c.appointment.starts_at)
                       : "—"}{" "}
                     · {serviceLabel}
                     {(isAdmin || isChefePiercing) && c.collaborator && (

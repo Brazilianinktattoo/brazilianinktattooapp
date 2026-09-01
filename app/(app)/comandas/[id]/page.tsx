@@ -17,6 +17,7 @@ import { DeleteComandaButton } from "./delete-comanda-button";
 import { EditComandaDatesForm } from "./edit-comanda-dates-form";
 import { CommissionRow } from "./commission-row";
 import { PAYMENT_METHOD_LABEL } from "@/lib/fees";
+import { formatStudioDateTime } from "@/lib/date";
 import type { ComandaJewelry as ComandaJewelryRow, JewelryCatalogItem } from "@/lib/types/database";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -27,14 +28,7 @@ const ROLE_LABEL: Record<string, string> = {
   visitante: "Visitante",
 };
 
-function formatWhen(iso: string) {
-  return new Date(iso).toLocaleString("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
+const formatWhen = formatStudioDateTime;
 
 export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
   const { id } = await props.params;

@@ -27,6 +27,27 @@ export function todayParam() {
   );
 }
 
+// Formata um instante (timestamptz) na data/hora local do estúdio —
+// toLocaleDateString/toLocaleString sem `timeZone` usam o fuso do runtime
+// (UTC no servidor), o que atrasa/adianta a data pra qualquer horário entre
+// 21h e 23h59 (fuso do estúdio), quando já é o dia seguinte em UTC. Usado
+// pra qualquer timestamp real (closed_at, created_at, starts_at) — não pra
+// datas "YYYY-MM-DD" puras, que já usam a âncora meio-dia UTC (seguras por
+// natureza, ver formatDateLabel/formatWeekLabel/formatMonthLabel).
+export function formatStudioDate(iso: string) {
+  return new Date(iso).toLocaleDateString("pt-BR", { timeZone: STUDIO_TZ });
+}
+
+export function formatStudioDateTime(iso: string) {
+  return new Date(iso).toLocaleString("pt-BR", {
+    timeZone: STUDIO_TZ,
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 // "YYYY-MM-DD" do dia local (fuso do estúdio) em que um instante cai —
 // mesma técnica do todayParam(), mas pra um instante arbitrário.
 export function dateParamFromISO(iso: string) {

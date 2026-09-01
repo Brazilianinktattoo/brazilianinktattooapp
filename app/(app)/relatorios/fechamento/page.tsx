@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { monthStartParam, todayParam } from "@/lib/date";
+import { formatStudioDate, monthStartParam, todayParam } from "@/lib/date";
 import type { Profile, Unit } from "@/lib/types/database";
 import {
   fetchFinanceLines,
@@ -279,7 +279,7 @@ export default async function FechamentoFinanceiroPage(
               {lines.map((l) => (
                 <tr key={l.id} className="border-b border-neutral-800">
                   <td className="py-3 pl-4 pr-4 whitespace-nowrap text-neutral-300">
-                    {l.date ? new Date(l.date).toLocaleDateString("pt-BR") : "—"}
+                    {l.date ? formatStudioDate(l.date) : "—"}
                   </td>
                   <td className="py-3 pr-4 text-neutral-300">
                     {SEGMENT_LABEL[l.segment]}

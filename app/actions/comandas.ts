@@ -378,6 +378,17 @@ export async function closeComanda(
     (productLines ?? []).reduce((s, i) => s + i.quantity * i.unit_price, 0) +
     (jewelryLines ?? []).reduce((s, i) => s + i.value, 0);
 
+  // Fechar sem nenhum item lançado zera o faturamento e a comissão em
+  // silêncio (já aconteceu de verdade — comanda fechada em R$ 0,00 com um
+  // agendamento de R$ 1.400 por trás) — força quem for fechar a lançar ao
+  // menos um serviço/produto/jóia antes.
+  if (gross <= 0) {
+    return {
+      error:
+        "Essa comanda não tem nenhum serviço, produto ou jóia lançado — adicione o valor do atendimento antes de fechar.",
+    };
+  }
+
   let feeRatePercent = 0;
   if (payment_method === "credito" || payment_method === "debito") {
     const { data: rates } = await supabase

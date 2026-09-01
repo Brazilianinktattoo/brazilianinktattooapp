@@ -1,4 +1,4 @@
-import { rangeBounds } from "@/lib/date";
+import { formatStudioDate, rangeBounds } from "@/lib/date";
 import { createClient } from "@/lib/supabase/server";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
@@ -140,7 +140,7 @@ export function barraShoppingToCsv(report: BarraShoppingReport): string {
     for (const l of lines) {
       rows.push([
         label,
-        l.date ? new Date(l.date).toLocaleDateString("pt-BR") : "",
+        l.date ? formatStudioDate(l.date) : "",
         l.clientName,
         l.description,
         money(l.value),
