@@ -121,6 +121,18 @@ export async function openComandaFromClient(
 
   const admin = createAdminClient();
 
+  // Client de admin — o Chefe de Piercing pode estar atendendo pela
+  // primeira vez um cliente que só tinha histórico de tatuagem até agora;
+  // a RLS de clients só libera esse cargo pra quem já tem histórico de
+  // piercing, então essa busca (só id, pra vincular o agendamento) usa o
+  // client admin pra não travar antes mesmo do primeiro atendimento.
+  const { data: existingClient } = await admin
+    .from("clients")
+    .select("id, full_name")
+    .eq("phone", client_phone)
+    .maybeSingle();
+  const client_id = existingClient?.id ?? null;
+
   const { data: anamnese } = await supabase
     .from("anamnese_forms")
     .select("client_origin, signed_at")
@@ -146,13 +158,15 @@ export async function openComandaFromClient(
     // já teve alguma comanda (aberta ou fechada) com um tatuador. Não
     // precisa de ficha nova só porque o histórico dele é do lado da
     // tatuagem; a ficha de anamnese em si continua obrigatória pra quem
-    // nunca passou pelo estúdio.
+    // nunca passou pelo estúdio. Usa client_id (não o telefone bruto do
+    // agendamento, que nem sempre está normalizado) pra casar o histórico
+    // com segurança.
     let hasTattooHistory = false;
-    if (isPiercingRole) {
+    if (isPiercingRole && client_id) {
       const { data: tattooAppointments } = await admin
         .from("appointments")
         .select("id, collaborator:profiles!appointments_collaborator_id_fkey(role)")
-        .eq("client_phone", client_phone)
+        .eq("client_id", client_id)
         .returns<{ id: string; collaborator: { role: string } | null }[]>();
       const tattooApptIds = (tattooAppointments ?? [])
         .filter((a) => a.collaborator?.role === "tatuador")
@@ -175,18 +189,6 @@ export async function openComandaFromClient(
       };
     }
   }
-
-  // Client de admin — o Chefe de Piercing pode estar atendendo pela
-  // primeira vez um cliente que só tinha histórico de tatuagem até agora;
-  // a RLS de clients só libera esse cargo pra quem já tem histórico de
-  // piercing, então essa busca (só id, pra vincular o agendamento) usa o
-  // client admin pra não travar antes mesmo do primeiro atendimento.
-  const { data: existingClient } = await admin
-    .from("clients")
-    .select("id, full_name")
-    .eq("phone", client_phone)
-    .maybeSingle();
-  const client_id = existingClient?.id ?? null;
 
   // Telefone já cadastrado, mas com um nome diferente do digitado agora —
   // pode ser cadastro antigo/importado com nome errado, ou até dois
