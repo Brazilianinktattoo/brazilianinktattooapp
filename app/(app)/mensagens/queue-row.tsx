@@ -12,6 +12,7 @@ const KIND_LABEL: Record<string, string> = {
   pos_tattoo_30: "Pós-tattoo 30d",
   pos_tattoo_60: "Pós-tattoo 60d",
   promocao: "Promoção",
+  pedido_avaliacao: "Avaliação Google",
 };
 
 export function QueueRow({ item }: { item: MessageQueueItemWithClient }) {

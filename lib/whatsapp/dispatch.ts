@@ -13,6 +13,7 @@ const TEMPLATE_BY_KIND: Record<string, { name: string; withName?: boolean }> = {
   pos_tattoo_15: { name: "pos_tattoo_dia15" },
   pos_tattoo_30: { name: "pos_tattoo_dia30" },
   pos_tattoo_60: { name: "pos_tattoo_dia60" },
+  pedido_avaliacao: { name: "pedido_avaliacao_google", withName: true },
 };
 
 // Proteção contra bloqueio: um lote por chamada (até BATCH_SIZE contatos),

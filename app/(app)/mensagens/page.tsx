@@ -18,6 +18,7 @@ const TRIGGER_ORDER = [
   "pos_tattoo_15",
   "pos_tattoo_30",
   "pos_tattoo_60",
+  "pedido_avaliacao",
 ];
 
 export default async function MensagensPage() {

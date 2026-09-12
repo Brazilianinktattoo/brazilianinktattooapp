@@ -20,6 +20,10 @@ export type MessageTemplateDef = {
   category: "UTILITY" | "MARKETING";
   bodyText: string;
   exampleParams?: string[];
+  // Botão de link estático (mesmo destino pra todo mundo) — não precisa de
+  // parâmetro em sendTemplateMessage, já vem fixo no modelo aprovado.
+  buttonText?: string;
+  buttonUrl?: string;
 };
 
 // Modelos aprovados pela Meta — necessários pra mandar mensagem fora da
@@ -89,6 +93,15 @@ export const MESSAGE_TEMPLATES: MessageTemplateDef[] = [
     category: "UTILITY",
     bodyText:
       "Cuidados pós-lobulomodelação auricular 🖤\n\nCurativo: mantenha por 7 dias e não molhe em hipótese alguma — pode interferir no resultado e infeccionar o local.\n\n- Após 7 dias, use Cicaplast Baume B5 (La Roche-Posay) 2x ao dia\n- Use protetor solar se for se expor ao sol (senão a pele escurece)\n- Não use álcool, iodo, água oxigenada ou outra pomada além da indicada\n- Não use maquiagem ou perfume no local\n- Não arranque as casquinhas — faz parte da cicatrização\n- Não abra o furo pra ver se fechou\n- Evite sol no primeiro mês\n- A partir do 7º dia, no banho, pode higienizar com sabonete neutro, sem esfregar\n- Não use brincos no furo durante o tratamento\n- Envie foto semanalmente pra equipe\n\nRetorno para a próxima sessão: 30 dias. Qualquer dúvida, fale com a gente! 🖤",
+  },
+  {
+    name: "pedido_avaliacao_google",
+    category: "UTILITY",
+    bodyText:
+      "Oi, {{1}}! Aqui é a equipe do Brazilian Ink Tattoo 🖤\n\nEsperamos que esteja curtindo o resultado do seu atendimento! Se puder, deixar uma avaliação no Google ajuda muito outras pessoas a conhecerem nosso trabalho — leva menos de um minuto.",
+    exampleParams: ["Maria"],
+    buttonText: "Avaliar no Google",
+    buttonUrl: "https://share.google/Knd92GoJv4oHKb4Ft",
   },
 ];
 
@@ -164,6 +177,12 @@ export async function createMessageTemplate(def: MessageTemplateDef): Promise<Se
         : {}),
     },
   ];
+  if (def.buttonUrl) {
+    components.push({
+      type: "BUTTONS",
+      buttons: [{ type: "URL", text: def.buttonText ?? "Ver mais", url: def.buttonUrl }],
+    });
+  }
 
   try {
     const res = await fetch(`${GRAPH_API_BASE}/${WABA_ID}/message_templates`, {

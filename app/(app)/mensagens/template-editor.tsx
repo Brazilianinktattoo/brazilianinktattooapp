@@ -11,6 +11,7 @@ const LABELS: Record<MessageTrigger, string> = {
   pos_tattoo_15: "Pós-tattoo — 15 dias",
   pos_tattoo_30: "Pós-tattoo — 30 dias",
   pos_tattoo_60: "Pós-tattoo — 60 dias",
+  pedido_avaliacao: "Pedido de avaliação (Google)",
 };
 
 export function TemplateEditor({ template }: { template: MessageTemplate }) {

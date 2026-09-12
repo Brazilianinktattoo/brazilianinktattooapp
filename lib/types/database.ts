@@ -118,7 +118,8 @@ export type MessageTrigger =
   | "pos_tattoo_7"
   | "pos_tattoo_15"
   | "pos_tattoo_30"
-  | "pos_tattoo_60";
+  | "pos_tattoo_60"
+  | "pedido_avaliacao";
 
 export type MessageTemplate = {
   id: string;
