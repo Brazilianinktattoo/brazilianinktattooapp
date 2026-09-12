@@ -119,6 +119,8 @@ export async function openComandaFromClient(
     return { error: "Selecione a maca." };
   }
 
+  const admin = createAdminClient();
+
   const { data: anamnese } = await supabase
     .from("anamnese_forms")
     .select("client_origin, signed_at")
@@ -139,10 +141,39 @@ export async function openComandaFromClient(
   const requiresAnamnese = !paperAnamnese && (!isPiercingRole || serviceType === "perfuracao");
 
   if (requiresAnamnese && !anamnese) {
-    return {
-      error:
-        "Esse cliente ainda não tem ficha de anamnese preenchida — gere e envie a ficha antes de abrir a comanda.",
-    };
+    // Cliente sem ficha assinada ainda pode ser liberado pro Chefe de
+    // Piercing/Body Piercer se ele já é cliente conhecido do estúdio —
+    // já teve alguma comanda (aberta ou fechada) com um tatuador. Não
+    // precisa de ficha nova só porque o histórico dele é do lado da
+    // tatuagem; a ficha de anamnese em si continua obrigatória pra quem
+    // nunca passou pelo estúdio.
+    let hasTattooHistory = false;
+    if (isPiercingRole) {
+      const { data: tattooAppointments } = await admin
+        .from("appointments")
+        .select("id, collaborator:profiles!appointments_collaborator_id_fkey(role)")
+        .eq("client_phone", client_phone)
+        .returns<{ id: string; collaborator: { role: string } | null }[]>();
+      const tattooApptIds = (tattooAppointments ?? [])
+        .filter((a) => a.collaborator?.role === "tatuador")
+        .map((a) => a.id);
+      if (tattooApptIds.length > 0) {
+        const { data: tattooComanda } = await admin
+          .from("comandas")
+          .select("id")
+          .in("appointment_id", tattooApptIds)
+          .limit(1)
+          .maybeSingle();
+        hasTattooHistory = !!tattooComanda;
+      }
+    }
+
+    if (!hasTattooHistory) {
+      return {
+        error:
+          "Esse cliente ainda não tem ficha de anamnese preenchida — gere e envie a ficha antes de abrir a comanda.",
+      };
+    }
   }
 
   // Client de admin — o Chefe de Piercing pode estar atendendo pela
@@ -150,7 +181,6 @@ export async function openComandaFromClient(
   // a RLS de clients só libera esse cargo pra quem já tem histórico de
   // piercing, então essa busca (só id, pra vincular o agendamento) usa o
   // client admin pra não travar antes mesmo do primeiro atendimento.
-  const admin = createAdminClient();
   const { data: existingClient } = await admin
     .from("clients")
     .select("id, full_name")
