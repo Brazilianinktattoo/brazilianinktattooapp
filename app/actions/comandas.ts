@@ -156,16 +156,15 @@ export async function openComandaFromClient(
     formData.get("paper_anamnese") === "on";
   const requiresAnamnese = !paperAnamnese && (!isPiercingRole || serviceType === "perfuracao");
 
+  // Cliente sem ficha assinada ainda pode ser liberado pro Chefe de
+  // Piercing/Body Piercer se ele já é cliente conhecido do estúdio — já
+  // teve alguma comanda (aberta ou fechada) com um tatuador. Não precisa
+  // de ficha nova só porque o histórico dele é do lado da tatuagem; a
+  // ficha de anamnese em si continua obrigatória pra quem nunca passou
+  // pelo estúdio. Usa client_id (não o telefone bruto do agendamento, que
+  // nem sempre está normalizado) pra casar o histórico com segurança.
+  let hasTattooHistory = false;
   if (requiresAnamnese && !anamnese) {
-    // Cliente sem ficha assinada ainda pode ser liberado pro Chefe de
-    // Piercing/Body Piercer se ele já é cliente conhecido do estúdio —
-    // já teve alguma comanda (aberta ou fechada) com um tatuador. Não
-    // precisa de ficha nova só porque o histórico dele é do lado da
-    // tatuagem; a ficha de anamnese em si continua obrigatória pra quem
-    // nunca passou pelo estúdio. Usa client_id (não o telefone bruto do
-    // agendamento, que nem sempre está normalizado) pra casar o histórico
-    // com segurança.
-    let hasTattooHistory = false;
     if (isPiercingRole && client_id) {
       const { data: tattooAppointments } = await admin
         .from("appointments")
@@ -233,7 +232,9 @@ export async function openComandaFromClient(
         ? "Comanda aberta direto da ficha de anamnese, sem agendamento prévio."
         : paperAnamnese
           ? "Comanda aberta sem agendamento prévio — atendimento especial com ficha de anamnese em papel (envie o PDF/foto da ficha pelo upload da comanda)."
-          : `Comanda aberta sem agendamento prévio — tipo: ${SERVICE_TYPE_LABEL[serviceType] ?? serviceType}, ficha de anamnese não exigida.`,
+          : hasTattooHistory
+            ? "Comanda aberta sem agendamento prévio — cliente sem ficha de anamnese, mas já tinha comanda de tatuagem no estúdio."
+            : `Comanda aberta sem agendamento prévio — tipo: ${SERVICE_TYPE_LABEL[serviceType] ?? serviceType}, ficha de anamnese não exigida.`,
       starts_at: now.toISOString(),
       ends_at: blockEnds.toISOString(),
       total_amount,
