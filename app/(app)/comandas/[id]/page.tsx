@@ -12,13 +12,18 @@ import type {
 import { ComandaServices } from "./comanda-services";
 import { ComandaProducts } from "./comanda-products";
 import { ComandaJewelry } from "./comanda-jewelry";
+import { ComandaDocuments } from "./comanda-documents";
 import { CloseComandaForm } from "./close-comanda-form";
 import { DeleteComandaButton } from "./delete-comanda-button";
 import { EditComandaDatesForm } from "./edit-comanda-dates-form";
 import { CommissionRow } from "./commission-row";
 import { PAYMENT_METHOD_LABEL } from "@/lib/fees";
 import { formatStudioDateTime } from "@/lib/date";
-import type { ComandaJewelry as ComandaJewelryRow, JewelryCatalogItem } from "@/lib/types/database";
+import type {
+  ComandaJewelry as ComandaJewelryRow,
+  ComandaDocument,
+  JewelryCatalogItem,
+} from "@/lib/types/database";
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Admin",
@@ -81,6 +86,7 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
     { data: jewelryCatalog },
     { data: serviceCatalog },
     { data: anamnese },
+    { data: documents },
   ] = await Promise.all([
     supabase
       .from("comanda_services")
@@ -126,6 +132,12 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
           .eq("appointment_id", comanda.appointment_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase
+      .from("comanda_documents")
+      .select("*")
+      .eq("comanda_id", id)
+      .order("created_at")
+      .returns<ComandaDocument[]>(),
   ]);
 
   const servicesTotal = (services ?? []).reduce((s, i) => s + i.price, 0);
@@ -224,6 +236,12 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
         comandaId={comanda.id}
         items={jewelryLines ?? []}
         catalog={jewelryCatalog ?? []}
+        canEdit={canEdit}
+      />
+
+      <ComandaDocuments
+        comandaId={comanda.id}
+        documents={documents ?? []}
         canEdit={canEdit}
       />
 

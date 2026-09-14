@@ -255,6 +255,16 @@ export type ComandaService = {
   updated_at: string;
 };
 
+export type ComandaDocument = {
+  id: string;
+  comanda_id: string;
+  file_path: string;
+  file_name: string;
+  mime_type: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+};
+
 export type ComandaProduct = {
   id: string;
   comanda_id: string;
@@ -722,6 +732,16 @@ export type Database = {
           description: string;
         };
         Update: Partial<ComandaService>;
+        Relationships: [];
+      };
+      comanda_documents: {
+        Row: ComandaDocument;
+        Insert: Partial<ComandaDocument> & {
+          comanda_id: string;
+          file_path: string;
+          file_name: string;
+        };
+        Update: Partial<ComandaDocument>;
         Relationships: [];
       };
       comanda_products: {

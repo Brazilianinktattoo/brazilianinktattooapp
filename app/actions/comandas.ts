@@ -146,10 +146,14 @@ export async function openComandaFromClient(
   // atendimento é uma perfuração de verdade — venda/troca/retirada/
   // recolocação de jóia e Led Terapia não são procedimento invasivo e
   // dispensam anamnese. Tatuador/Admin continuam exigindo sempre — a menos
-  // que o admin confirme que o atendimento foi feito com ficha em papel
-  // (atendimento especial fora do fluxo digital normal).
+  // que quem esteja abrindo (o próprio tatuador, ou o admin) confirme que
+  // o atendimento foi feito com ficha em papel (atendimento especial fora
+  // do fluxo digital normal) — a ficha física em si sobe depois pelo
+  // upload da comanda (comanda_documents).
   const serviceType = String(formData.get("service_type") ?? "perfuracao");
-  const paperAnamnese = profile.role === "admin" && formData.get("paper_anamnese") === "on";
+  const paperAnamnese =
+    (profile.role === "admin" || profile.role === "tatuador") &&
+    formData.get("paper_anamnese") === "on";
   const requiresAnamnese = !paperAnamnese && (!isPiercingRole || serviceType === "perfuracao");
 
   if (requiresAnamnese && !anamnese) {
@@ -228,7 +232,7 @@ export async function openComandaFromClient(
       notes: anamnese
         ? "Comanda aberta direto da ficha de anamnese, sem agendamento prévio."
         : paperAnamnese
-          ? "Comanda aberta sem agendamento prévio — atendimento especial com ficha de anamnese em papel (confirmado pelo admin)."
+          ? "Comanda aberta sem agendamento prévio — atendimento especial com ficha de anamnese em papel (envie o PDF/foto da ficha pelo upload da comanda)."
           : `Comanda aberta sem agendamento prévio — tipo: ${SERVICE_TYPE_LABEL[serviceType] ?? serviceType}, ficha de anamnese não exigida.`,
       starts_at: now.toISOString(),
       ends_at: blockEnds.toISOString(),
@@ -813,4 +817,109 @@ export async function updateComandaCommission(comandaId: string, amount: number 
     .update({ commission_amount: amount })
     .eq("id", comandaId);
   revalidatePath(`/comandas/${comandaId}`);
+}
+
+// Espaço na comanda pra subir a ficha de anamnese assinada em papel (PDF
+// ou foto) — companion do checkbox "atendimento especial" (paper_anamnese)
+// em openComandaFromClient. Upload passa pelo client admin porque o bucket
+// 'documentos' é RLS admin-only no storage; quem pode chamar esta action é
+// controlado aqui, igual ao dono-ou-admin já usado nas outras linhas da
+// comanda.
+const COMANDA_DOCUMENTS_BUCKET = "documentos";
+const COMANDA_DOCUMENTS_PREFIX = "comanda-anamnese";
+const COMANDA_DOCUMENTS_MAX_SIZE = 15 * 1024 * 1024;
+const COMANDA_DOCUMENTS_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png"];
+
+async function canManageComandaDocuments(comandaId: string) {
+  const { user, profile } = await requireProfile();
+  if (profile.role === "admin") return true;
+
+  const supabase = await createClient();
+  const { data: comanda } = await supabase
+    .from("comandas")
+    .select("collaborator_id, collaborator:profiles!comandas_collaborator_id_fkey(role)")
+    .eq("id", comandaId)
+    .maybeSingle<{ collaborator_id: string; collaborator: { role: string } | null }>();
+  if (!comanda) return false;
+
+  if (comanda.collaborator_id === user.id) return true;
+
+  const isPiercingRole =
+    comanda.collaborator?.role === "piercer" || comanda.collaborator?.role === "chefe_piercing";
+  return profile.role === "chefe_piercing" && isPiercingRole;
+}
+
+export type UploadComandaDocumentState = { error?: string };
+
+export async function uploadComandaDocument(
+  comandaId: string,
+  _prevState: UploadComandaDocumentState,
+  formData: FormData
+): Promise<UploadComandaDocumentState> {
+  const { user } = await requireProfile();
+  if (!(await canManageComandaDocuments(comandaId))) {
+    return { error: "Sem permissão pra anexar arquivo nessa comanda." };
+  }
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    return { error: "Selecione um arquivo (PDF, JPEG ou PNG)." };
+  }
+  if (file.size > COMANDA_DOCUMENTS_MAX_SIZE) {
+    return { error: "Arquivo muito grande (máx. 15MB)." };
+  }
+  if (file.type && !COMANDA_DOCUMENTS_ALLOWED_TYPES.includes(file.type)) {
+    return { error: "Só PDF, JPEG ou PNG." };
+  }
+
+  const admin = createAdminClient();
+  const storagePath = `${COMANDA_DOCUMENTS_PREFIX}/${comandaId}/${crypto.randomUUID()}-${file.name}`;
+  const { error: uploadError } = await admin.storage
+    .from(COMANDA_DOCUMENTS_BUCKET)
+    .upload(storagePath, file, { contentType: file.type || undefined });
+  if (uploadError) return { error: "Não foi possível enviar o arquivo." };
+
+  const { error } = await admin.from("comanda_documents").insert({
+    comanda_id: comandaId,
+    file_path: storagePath,
+    file_name: file.name,
+    mime_type: file.type || null,
+    uploaded_by: user.id,
+  });
+  if (error) {
+    await admin.storage.from(COMANDA_DOCUMENTS_BUCKET).remove([storagePath]);
+    return {
+      error: error.message.includes("fechada")
+        ? "Comanda fechada, não é possível anexar arquivo."
+        : "Não foi possível salvar o arquivo.",
+    };
+  }
+
+  revalidatePath(`/comandas/${comandaId}`);
+  return {};
+}
+
+export async function deleteComandaDocument(comandaId: string, documentId: string) {
+  if (!(await canManageComandaDocuments(comandaId))) return;
+
+  const admin = createAdminClient();
+  const { data: doc } = await admin
+    .from("comanda_documents")
+    .select("file_path")
+    .eq("id", documentId)
+    .maybeSingle();
+  if (!doc) return;
+
+  await admin.from("comanda_documents").delete().eq("id", documentId);
+  await admin.storage.from(COMANDA_DOCUMENTS_BUCKET).remove([doc.file_path]);
+  revalidatePath(`/comandas/${comandaId}`);
+}
+
+export async function getComandaDocumentUrl(filePath: string) {
+  await requireProfile();
+  const admin = createAdminClient();
+  const { data } = await admin.storage
+    .from(COMANDA_DOCUMENTS_BUCKET)
+    .createSignedUrl(filePath, 60 * 10);
+  return data?.signedUrl ?? null;
 }

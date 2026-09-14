@@ -71,23 +71,6 @@ export default async function AbrirComandaPage(
     );
   }
 
-  if (!anamnese && !isPiercingRole && !isAdmin) {
-    return (
-      <div className="flex flex-col gap-6">
-        <h1 className="text-xl font-semibold text-white">Abrir comanda</h1>
-        <div className="rounded-xl border border-amber-800 bg-amber-500/10 p-6 text-center text-amber-300">
-          <p className="font-medium">
-            {client_name} ainda não tem ficha de anamnese preenchida.
-          </p>
-          <p className="mt-1 text-sm text-amber-300/80">
-            Gere e envie a ficha antes de abrir a comanda — é o único
-            requisito.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-6">
       <div>

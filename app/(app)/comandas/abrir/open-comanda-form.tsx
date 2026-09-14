@@ -66,6 +66,11 @@ export function OpenComandaForm({
     : undefined;
   const effectiveNeedsMaca = canChooseCollaborator ? needsMacaFor(selectedRole) : needsMaca;
   const effectiveIsPiercingRole = canChooseCollaborator ? isPiercing(selectedRole) : isPiercingRole;
+  // Checkbox de "ficha em papel" vale pra admin (qualquer profissional) e
+  // pro tatuador se autoatendendo — quem já tem outra saída (piercing, via
+  // tipo de atendimento sem perfuração ou histórico de tatuagem) não
+  // precisa dela.
+  const showPaperAnamneseOption = !hasAnamnese && (canChooseCollaborator || !effectiveIsPiercingRole);
   const macasInUnit = useMemo(
     () => macas.filter((m) => m.unit_id === unitId),
     [macas, unitId]
@@ -107,7 +112,7 @@ export function OpenComandaForm({
         </>
       )}
 
-      {canChooseCollaborator && !hasAnamnese && (
+      {showPaperAnamneseOption && (
         <label className="flex items-start gap-2 rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 text-sm text-neutral-300">
           <input
             type="checkbox"
@@ -121,7 +126,8 @@ export function OpenComandaForm({
             digital)
             <span className="mt-1 block text-xs text-neutral-500">
               Marque só se o cliente já assinou uma ficha física de verdade —
-              isso libera abrir a comanda sem a ficha digital.
+              isso libera abrir a comanda sem a ficha digital. Depois, suba o
+              PDF ou a foto da ficha na própria comanda.
             </span>
           </span>
         </label>
@@ -158,8 +164,8 @@ export function OpenComandaForm({
 
       {!effectiveIsPiercingRole && !hasAnamnese && !paperAnamnese && (
         <p className="rounded-lg border border-amber-800 bg-amber-500/10 p-3 text-sm text-amber-300">
-          {clientName} ainda não tem ficha de anamnese preenchida — só body
-          piercers podem abrir sem ela, ou marque acima que foi assinada em
+          {clientName} ainda não tem ficha de anamnese preenchida — gere e
+          envie a ficha digital antes, ou marque acima que foi assinada em
           papel (atendimento especial).
         </p>
       )}
