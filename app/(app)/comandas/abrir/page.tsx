@@ -35,7 +35,7 @@ export default async function AbrirComandaPage(
       client_phone
         ? supabase
             .from("anamnese_forms")
-            .select("id, deposit_amount")
+            .select("id, deposit_amount, client_origin")
             .eq("phone", normalizePhone(client_phone))
             .not("signed_at", "is", null)
             .limit(1)
@@ -104,6 +104,7 @@ export default async function AbrirComandaPage(
         needsMaca={needsMaca}
         isPiercingRole={isPiercingRole}
         hasAnamnese={!!anamnese}
+        defaultClientIsOwn={anamnese?.client_origin === "trazido_pelo_tatuador"}
       />
     </div>
   );

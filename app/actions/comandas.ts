@@ -227,7 +227,9 @@ export async function openComandaFromClient(
       client_id,
       client_name,
       client_phone,
-      client_is_own: anamnese?.client_origin === "trazido_pelo_tatuador",
+      client_is_own: formData.has("client_is_own_present")
+        ? formData.get("client_is_own") === "on"
+        : anamnese?.client_origin === "trazido_pelo_tatuador",
       notes: anamnese
         ? "Comanda aberta direto da ficha de anamnese, sem agendamento prévio."
         : paperAnamnese

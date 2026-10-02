@@ -37,6 +37,7 @@ export function OpenComandaForm({
   needsMaca,
   isPiercingRole = false,
   hasAnamnese = true,
+  defaultClientIsOwn = false,
 }: {
   clientName: string;
   clientPhone: string;
@@ -48,6 +49,7 @@ export function OpenComandaForm({
   needsMaca: boolean;
   isPiercingRole?: boolean;
   hasAnamnese?: boolean;
+  defaultClientIsOwn?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(
     openComandaFromClient,
@@ -168,6 +170,27 @@ export function OpenComandaForm({
           envie a ficha digital antes, ou marque acima que foi assinada em
           papel (atendimento especial).
         </p>
+      )}
+
+      {effectiveNeedsMaca && (
+        <label className="flex items-start gap-2 rounded-lg border border-neutral-800 bg-neutral-900/60 p-3 text-sm text-neutral-300">
+          <input type="hidden" name="client_is_own_present" value="1" />
+          <input
+            key={`own-${defaultClientIsOwn}`}
+            type="checkbox"
+            name="client_is_own"
+            defaultChecked={defaultClientIsOwn}
+            className="mt-0.5"
+          />
+          <span>
+            Cliente próprio (fui eu quem trouxe)
+            <span className="mt-1 block text-xs text-neutral-500">
+              Afeta a comissão no Downtown (70% cliente próprio, 50% cliente do
+              estúdio). Já vem marcado se o cliente indicou isso na ficha —
+              corrija aqui se estiver errado.
+            </span>
+          </span>
+        </label>
       )}
 
       <div className="flex flex-col gap-1.5">
