@@ -222,6 +222,7 @@ export type Comanda = {
   gross_amount: number | null;
   charged_amount: number | null;
   commission_amount: number | null;
+  client_is_own_override: boolean | null;
   created_at: string;
   updated_at: string;
   closed_at: string | null;

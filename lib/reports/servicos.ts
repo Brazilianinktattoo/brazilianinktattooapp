@@ -38,6 +38,7 @@ export type ServiceReportLine = {
 type RawComandaRow = {
   id: string;
   closed_at: string | null;
+  client_is_own_override: boolean | null;
   unit: { id: string; name: string } | null;
   collaborator: {
     id: string;
@@ -81,7 +82,7 @@ export async function fetchServiceReportLines(
   const { data } = await supabase
     .from("comandas")
     .select(
-      "id, closed_at, unit:units(id, name), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role, commission_rate, commission_rate_sales), appointment:appointments!comandas_appointment_id_fkey(id, client_name, client_is_own, anamnese_forms(client_origin, signed_at)), comanda_services(id, description, price), comanda_jewelry(id, jewelry_name, value)"
+      "id, closed_at, client_is_own_override, unit:units(id, name), collaborator:profiles!comandas_collaborator_id_fkey(id, full_name, role, commission_rate, commission_rate_sales), appointment:appointments!comandas_appointment_id_fkey(id, client_name, client_is_own, anamnese_forms(client_origin, signed_at)), comanda_services(id, description, price), comanda_jewelry(id, jewelry_name, value)"
     )
     .eq("status", "fechada")
     .gte("closed_at", start.toISOString())
@@ -96,7 +97,8 @@ export async function fetchServiceReportLines(
     const clientIsOwn = resolveClientIsOwn(
       c.appointment?.client_is_own ?? false,
       anamnese?.client_origin,
-      anamnese?.signed_at
+      anamnese?.signed_at,
+      c.client_is_own_override
     );
     const isPiercingRole =
       c.collaborator?.role === "piercer" || c.collaborator?.role === "chefe_piercing";

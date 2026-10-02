@@ -579,11 +579,12 @@ async function notifyAdminsOfCommissionDue(
     const { data: comandaInfo } = await supabase
       .from("comandas")
       .select(
-        "appointment_id, collaborator:profiles!comandas_collaborator_id_fkey(full_name, role, commission_rate, commission_rate_sales), unit:units(name), appointment:appointments!comandas_appointment_id_fkey(client_is_own, anamnese_forms(client_origin, signed_at))"
+        "appointment_id, client_is_own_override, collaborator:profiles!comandas_collaborator_id_fkey(full_name, role, commission_rate, commission_rate_sales), unit:units(name), appointment:appointments!comandas_appointment_id_fkey(client_is_own, anamnese_forms(client_origin, signed_at))"
       )
       .eq("id", comandaId)
       .maybeSingle<{
         appointment_id: string;
+        client_is_own_override: boolean | null;
         collaborator: {
           full_name: string;
           role: string;
@@ -602,7 +603,8 @@ async function notifyAdminsOfCommissionDue(
     const clientIsOwn = resolveClientIsOwn(
       comandaInfo.appointment?.client_is_own ?? false,
       comandaInfo.appointment?.anamnese_forms?.client_origin,
-      comandaInfo.appointment?.anamnese_forms?.signed_at
+      comandaInfo.appointment?.anamnese_forms?.signed_at,
+      comandaInfo.client_is_own_override
     );
     const isPiercingRole =
       comandaInfo.collaborator.role === "piercer" ||
@@ -833,7 +835,7 @@ const COMANDA_DOCUMENTS_PREFIX = "comanda-anamnese";
 const COMANDA_DOCUMENTS_MAX_SIZE = 15 * 1024 * 1024;
 const COMANDA_DOCUMENTS_ALLOWED_TYPES = ["application/pdf", "image/jpeg", "image/png"];
 
-async function canManageComandaDocuments(comandaId: string) {
+async function canManageComanda(comandaId: string) {
   const { user, profile } = await requireProfile();
   if (profile.role === "admin") return true;
 
@@ -860,7 +862,7 @@ export async function uploadComandaDocument(
   formData: FormData
 ): Promise<UploadComandaDocumentState> {
   const { user } = await requireProfile();
-  if (!(await canManageComandaDocuments(comandaId))) {
+  if (!(await canManageComanda(comandaId))) {
     return { error: "Sem permissão pra anexar arquivo nessa comanda." };
   }
 
@@ -903,7 +905,7 @@ export async function uploadComandaDocument(
 }
 
 export async function deleteComandaDocument(comandaId: string, documentId: string) {
-  if (!(await canManageComandaDocuments(comandaId))) return;
+  if (!(await canManageComanda(comandaId))) return;
 
   const admin = createAdminClient();
   const { data: doc } = await admin
@@ -925,4 +927,14 @@ export async function getComandaDocumentUrl(filePath: string) {
     .from(COMANDA_DOCUMENTS_BUCKET)
     .createSignedUrl(filePath, 60 * 10);
   return data?.signedUrl ?? null;
+}
+
+// "Cliente próprio" manual na comanda — vale por cima da ficha e do
+// agendamento na comissão. null volta pro automático. Pode ser alterado
+// mesmo com a comanda fechada (as comissões são recalculadas nos relatórios).
+export async function setComandaClientIsOwn(comandaId: string, value: boolean | null) {
+  if (!(await canManageComanda(comandaId))) return;
+  const admin = createAdminClient();
+  await admin.from("comandas").update({ client_is_own_override: value }).eq("id", comandaId);
+  revalidatePath(`/comandas/${comandaId}`);
 }

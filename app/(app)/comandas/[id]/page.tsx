@@ -17,6 +17,7 @@ import { CloseComandaForm } from "./close-comanda-form";
 import { DeleteComandaButton } from "./delete-comanda-button";
 import { EditComandaDatesForm } from "./edit-comanda-dates-form";
 import { CommissionRow } from "./commission-row";
+import { ClientIsOwnToggle } from "./client-is-own-toggle";
 import { PAYMENT_METHOD_LABEL } from "@/lib/fees";
 import { formatStudioDateTime } from "@/lib/date";
 import type {
@@ -155,7 +156,8 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
   const clientIsOwn = resolveClientIsOwn(
     comanda.appointment?.client_is_own ?? false,
     anamnese?.client_origin,
-    anamnese?.signed_at
+    anamnese?.signed_at,
+    comanda.client_is_own_override
   );
   const rate = commissionRate(
     comanda.unit?.name ?? "",
@@ -282,6 +284,14 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
             </span>
           </div>
         ) : null}
+
+        {!isPiercingComanda && (profile.role === "admin" || comanda.collaborator_id === user.id) && (
+          <ClientIsOwnToggle
+            comandaId={comanda.id}
+            override={comanda.client_is_own_override}
+            effective={clientIsOwn}
+          />
+        )}
 
         <div className="mt-2 flex flex-col gap-1 border-t border-neutral-800 pt-2 text-sm text-neutral-300">
           <CommissionRow

@@ -30,14 +30,17 @@ export function salesCommissionRate(overrideRate?: number | null): number {
   return overrideRate ?? 0;
 }
 
-// A ficha de anamnese (quando preenchida e assinada) é a fonte preferida
+// Decisão manual na comanda (comandas.client_is_own_override) vale por cima
+// de tudo. A ficha de anamnese (quando preenchida e assinada) é a fonte preferida
 // pra origem do cliente — só cai pro checkbox do agendamento (preenchido
 // pelo staff) enquanto a ficha ainda não foi respondida pelo cliente.
 export function resolveClientIsOwn(
   appointmentClientIsOwn: boolean,
   anamneseClientOrigin: ClientOrigin | null | undefined,
-  anamneseSignedAt: string | null | undefined
+  anamneseSignedAt: string | null | undefined,
+  manualOverride?: boolean | null
 ): boolean {
+  if (manualOverride !== null && manualOverride !== undefined) return manualOverride;
   if (anamneseSignedAt && anamneseClientOrigin) {
     return anamneseClientOrigin === "trazido_pelo_tatuador";
   }
