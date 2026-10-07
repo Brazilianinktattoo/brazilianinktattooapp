@@ -5,6 +5,7 @@ import { requireAdmin, requireProfile } from "@/lib/auth";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { STUDIO_TZ } from "@/lib/date";
 import { normalizePhone } from "@/lib/phone";
+import { CLIENT_ORIGIN_OPTIONS, HOW_MET_OPTIONS } from "@/lib/anamnese-origin";
 import {
   ANAMNESE_HEALTH_QUESTIONS,
   renderAnamnesePdf,
@@ -12,6 +13,7 @@ import {
 import type {
   AnamneseForm,
   ClientOrigin,
+  HowMet,
   HealthDeclaration,
   ProcedureType,
 } from "@/lib/types/database";
@@ -90,11 +92,8 @@ export type AnamneseSignatureState = {
   minorAuthToken?: string;
 };
 
-const ORIGIN_OPTIONS: ClientOrigin[] = [
-  "trazido_pelo_tatuador",
-  "indicado_pelo_estudio",
-  "barra_shopping",
-];
+const ORIGIN_OPTIONS: ClientOrigin[] = CLIENT_ORIGIN_OPTIONS.map((o) => o.value);
+const HOW_MET_VALUES: HowMet[] = HOW_MET_OPTIONS.map((o) => o.value);
 
 function readHealthDeclaration(formData: FormData): HealthDeclaration {
   const result: HealthDeclaration = {};
@@ -129,6 +128,7 @@ export async function submitAnamneseSignature(
   const pregnantRaw = String(formData.get("pregnant") ?? "");
   const alcohol_24h = formData.get("alcohol_24h") === "sim";
   const client_origin = String(formData.get("client_origin") ?? "") as ClientOrigin;
+  const how_met = String(formData.get("how_met") ?? "") as HowMet;
   const signer_name = String(formData.get("signer_name") ?? "").trim();
   const agree = formData.get("agree");
 
@@ -161,7 +161,10 @@ export async function submitAnamneseSignature(
     return { error: "Responda a pergunta sobre gravidez/amamentação." };
   }
   if (!ORIGIN_OPTIONS.includes(client_origin)) {
-    return { error: "Selecione uma das opções de origem do cliente." };
+    return { error: "Informe quem trouxe você (estúdio ou tatuador)." };
+  }
+  if (!HOW_MET_VALUES.includes(how_met)) {
+    return { error: "Informe como você conheceu o estúdio." };
   }
   if (!signer_name) return { error: "Informe seu nome completo na assinatura." };
   if (!agree) return { error: "Confirme que as informações são verdadeiras." };
@@ -259,6 +262,7 @@ export async function submitAnamneseSignature(
       deposit_amount,
       health_declaration,
       client_origin,
+      how_met,
       file_path,
       signer_name,
       signed_at: signedAt.toISOString(),
@@ -334,6 +338,7 @@ export async function submitWalkinAnamnese(
   const pregnantRaw = String(formData.get("pregnant") ?? "");
   const alcohol_24h = formData.get("alcohol_24h") === "sim";
   const client_origin = String(formData.get("client_origin") ?? "") as ClientOrigin;
+  const how_met = String(formData.get("how_met") ?? "") as HowMet;
   const signer_name = String(formData.get("signer_name") ?? "").trim();
   const agree = formData.get("agree");
 
@@ -367,7 +372,10 @@ export async function submitWalkinAnamnese(
     return { error: "Responda a pergunta sobre gravidez/amamentação." };
   }
   if (!ORIGIN_OPTIONS.includes(client_origin)) {
-    return { error: "Selecione uma das opções de origem do cliente." };
+    return { error: "Informe quem trouxe você (estúdio ou tatuador)." };
+  }
+  if (!HOW_MET_VALUES.includes(how_met)) {
+    return { error: "Informe como você conheceu o estúdio." };
   }
   if (!signer_name) return { error: "Informe seu nome completo na assinatura." };
   if (!agree) return { error: "Confirme que as informações são verdadeiras." };
@@ -444,6 +452,7 @@ export async function submitWalkinAnamnese(
       deposit_amount,
       health_declaration,
       client_origin,
+      how_met,
       signer_name,
       signed_at: signedAt.toISOString(),
     })

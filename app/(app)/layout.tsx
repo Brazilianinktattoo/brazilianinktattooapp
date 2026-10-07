@@ -164,6 +164,9 @@ export default async function AppLayout({
                   <Link href="/fichas" className={NAV_LINK_CLASS}>
                     Fichas
                   </Link>
+                  <Link href="/raio-x" className={NAV_LINK_CLASS}>
+                    Raio-X
+                  </Link>
                   <Link href="/mensagens" className={NAV_LINK_CLASS}>
                     Mensagens
                   </Link>

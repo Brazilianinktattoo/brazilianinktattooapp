@@ -12,10 +12,17 @@ export type PaymentMethod = "credito" | "debito" | "pix" | "dinheiro" | "paypal"
 export type CardFeeMethod = "debito" | "credito";
 export type ServiceCategory = "tatuagem" | "piercing";
 export type JewelryOperation = "aplicada" | "trocada" | "vendida";
-export type ClientOrigin =
-  | "trazido_pelo_tatuador"
-  | "indicado_pelo_estudio"
-  | "barra_shopping";
+export type ClientOrigin = "trazido_pelo_tatuador" | "indicado_pelo_estudio";
+
+export type HowMet =
+  | "instagram_estudio"
+  | "google"
+  | "indicacao_cliente"
+  | "passou_na_porta"
+  | "anuncio"
+  | "escola_bit"
+  | "instagram_artista"
+  | "outro";
 
 export type Profile = {
   id: string;
@@ -382,6 +389,7 @@ export type AnamneseForm = {
   deposit_amount: number;
   health_declaration: HealthDeclaration;
   client_origin: ClientOrigin | null;
+  how_met: HowMet | null;
   file_path: string | null;
   sign_token: string;
   signed_at: string | null;

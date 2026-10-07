@@ -75,7 +75,7 @@ async function fetchCoworkingLines(
   }));
 }
 
-async function fetchCursoLines(
+export async function fetchCursoLines(
   supabase: SupabaseServerClient,
   from: string,
   to: string

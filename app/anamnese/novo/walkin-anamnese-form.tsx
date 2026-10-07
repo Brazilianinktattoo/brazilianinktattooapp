@@ -7,6 +7,7 @@ import {
 } from "@/app/actions/anamnese";
 import { ANAMNESE_HEALTH_QUESTIONS } from "@/lib/documents/anamnese-questions";
 import type { Profile } from "@/lib/types/database";
+import { CLIENT_ORIGIN_OPTIONS, HOW_MET_OPTIONS } from "@/lib/anamnese-origin";
 
 const initialState: WalkinAnamneseState = {};
 
@@ -16,14 +17,6 @@ const ROLE_LABEL: Record<string, string> = {
   chefe_piercing: "Chefe de Piercing",
 };
 
-const ORIGIN_OPTIONS = [
-  { value: "trazido_pelo_tatuador", label: "Fui trazido(a) pelo tatuador(a)" },
-  {
-    value: "indicado_pelo_estudio",
-    label: "Vim por indicação do estúdio (não trazido por um profissional específico)",
-  },
-  { value: "barra_shopping", label: "Meu atendimento é na unidade Barra Shopping" },
-];
 
 function Field({
   id,
@@ -299,8 +292,9 @@ export function WalkinAnamneseForm({
       <div className="flex flex-col gap-3 rounded-xl border border-neutral-800 bg-neutral-900/40 p-5">
         <h2 className="font-semibold text-white">4. Consentimento e origem</h2>
         <p className="text-sm text-neutral-400">{consentText}</p>
+        <p className="text-sm font-medium text-neutral-200">Quem trouxe você?</p>
         <div className="flex flex-col gap-2">
-          {ORIGIN_OPTIONS.map((opt) => (
+          {CLIENT_ORIGIN_OPTIONS.map((opt) => (
             <label
               key={opt.value}
               className="flex items-start gap-2 rounded-lg border border-neutral-800 p-3 text-sm text-neutral-300 hover:border-neutral-600"
@@ -309,6 +303,27 @@ export function WalkinAnamneseForm({
               {opt.label}
             </label>
           ))}
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="how_met" className="text-sm text-neutral-300">
+            Como você conheceu o estúdio?
+          </label>
+          <select
+            id="how_met"
+            name="how_met"
+            required
+            defaultValue=""
+            className="rounded-lg border border-neutral-700 bg-neutral-900 px-3 py-2 text-neutral-100 outline-none focus:border-gold"
+          >
+            <option value="" disabled>
+              Selecione...
+            </option>
+            {HOW_MET_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
         </div>
         <Field id="signer_name" label="Nome completo (confirme como assinatura)" required />
         <label className="flex items-start gap-2 text-sm text-neutral-300">

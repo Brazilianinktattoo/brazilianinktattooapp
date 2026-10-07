@@ -8,11 +8,12 @@ import {
 } from "@/app/actions/anamnese";
 import { STUDIO_TZ } from "@/lib/date";
 import type { AnamneseForm, MinorAuthorizationForm } from "@/lib/types/database";
+import { HOW_MET_LABEL } from "@/lib/anamnese-origin";
 
 const ORIGIN_LABEL: Record<string, string> = {
-  trazido_pelo_tatuador: "Trazido pelo tatuador (comissão 70%)",
-  indicado_pelo_estudio: "Indicado pelo estúdio (comissão 50%)",
-  barra_shopping: "Atendimento no Barra Shopping (comissão 50% fixo)",
+  trazido_pelo_tatuador: "Trazido pelo tatuador (comissão 70% no Downtown)",
+  indicado_pelo_estudio: "Trazido pelo estúdio (comissão 50%)",
+  barra_shopping: "Atendimento no Barra Shopping (ficha antiga)",
 };
 
 const initialState: GenerateAnamneseState = {};
@@ -85,6 +86,14 @@ export function AnamneseCard({
           Origem do cliente:{" "}
           <span className="text-neutral-100">
             {ORIGIN_LABEL[form.client_origin] ?? form.client_origin}
+          </span>
+        </p>
+      )}
+      {form?.signed_at && (
+        <p className="mt-1 text-sm text-neutral-300">
+          Como conheceu:{" "}
+          <span className="text-neutral-100">
+            {form.how_met ? HOW_MET_LABEL[form.how_met] : "Não informado"}
           </span>
         </p>
       )}
