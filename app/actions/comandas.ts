@@ -212,8 +212,10 @@ export async function openComandaFromClient(
   // esbarrar na primeira ainda "aberta" nesse horário. Perfuração continua
   // com 1h (procedimento de verdade); o resto usa uma janela bem mais
   // curta.
-  const isQuickTransaction = isPiercingRole && serviceType !== "perfuracao";
-  const blockMinutes = isQuickTransaction ? 15 : 60;
+  // Piercing não reserva maca, então o bloco é só formalidade em qualquer
+  // tipo de atendimento (inclusive perfuração, que antes travava 1h mesmo
+  // com a comanda já fechada). Tatuador/admin mantém 1h por causa da maca.
+  const blockMinutes = isPiercingRole ? 15 : 60;
 
   const now = new Date();
   const blockEnds = new Date(now.getTime() + blockMinutes * 60 * 1000);
@@ -254,8 +256,25 @@ export async function openComandaFromClient(
     } else if (msg.includes("maca")) {
       friendlyError = "Maca inválida pra esse profissional/unidade.";
     } else if (msg.includes("appointments_no_overlap_per_collaborator")) {
-      friendlyError =
-        "Esse profissional ainda tem outra comanda em andamento nesse horário — feche ou finalize a anterior antes de abrir uma nova, ou espere alguns minutos.";
+      const { data: clash } = await admin
+        .from("appointments")
+        .select("client_name, starts_at, ends_at")
+        .eq("collaborator_id", collaborator_id)
+        .eq("status", "confirmado")
+        .lt("starts_at", blockEnds.toISOString())
+        .gt("ends_at", now.toISOString())
+        .order("starts_at")
+        .limit(1)
+        .maybeSingle();
+      const hhmm = (iso: string) =>
+        new Date(iso).toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          timeZone: "America/Sao_Paulo",
+        });
+      friendlyError = clash
+        ? `Esse profissional já tem um horário ocupado na agenda agora: ${clash.client_name} (${hhmm(clash.starts_at)}–${hhmm(clash.ends_at)}). Se for o mesmo cliente, abra a comanda direto pelo agendamento; senão, peça pro admin ajustar esse horário.`
+        : "Esse profissional já tem um horário ocupado na agenda agora — confira a agenda ou espere alguns minutos.";
     }
     return { error: friendlyError };
   }
@@ -452,7 +471,7 @@ export async function closeComanda(
 
   const chargedAmount = computeChargedAmount(gross, feeRatePercent);
 
-  const { error } = await supabase
+  const { data: closed, error } = await supabase
     .from("comandas")
     .update({
       status: "fechada",
@@ -462,9 +481,38 @@ export async function closeComanda(
       gross_amount: gross,
       charged_amount: chargedAmount,
     })
-    .eq("id", comandaId);
+    .eq("id", comandaId)
+    .select("id, appointment_id");
 
-  if (error) return { error: "Não foi possível fechar a comanda." };
+  if (error || !closed || closed.length === 0) {
+    return {
+      error:
+        "Não foi possível fechar a comanda — você não tem permissão pra fechar essa comanda ou ela não existe mais.",
+    };
+  }
+
+  // Comanda aberta direto (sem agendamento prévio) deixa um bloco "confirmado"
+  // de até 1h na agenda — ao fechar, libera o horário na hora, senão o
+  // profissional fica sem conseguir abrir a próxima comanda.
+  const closedAppointmentId = closed[0].appointment_id;
+  if (closedAppointmentId) {
+    const releaseAdmin = createAdminClient();
+    const { data: block } = await releaseAdmin
+      .from("appointments")
+      .select("starts_at, ends_at, notes")
+      .eq("id", closedAppointmentId)
+      .maybeSingle();
+    if (block?.notes?.startsWith("Comanda aberta")) {
+      const earliest = new Date(new Date(block.starts_at).getTime() + 60 * 1000);
+      const releaseAt = new Date(Math.max(Date.now(), earliest.getTime()));
+      if (releaseAt < new Date(block.ends_at)) {
+        await releaseAdmin
+          .from("appointments")
+          .update({ ends_at: releaseAt.toISOString() })
+          .eq("id", closedAppointmentId);
+      }
+    }
+  }
 
   const servicesGross = (services ?? []).reduce((s, i) => s + i.price, 0);
   const jewelryGross = (jewelryLines ?? []).reduce((s, i) => s + i.value, 0);
