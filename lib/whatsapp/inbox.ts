@@ -272,7 +272,7 @@ export async function recordOutbound(
   });
   await admin
     .from("whatsapp_conversations")
-    .update({ last_message_at: new Date().toISOString(), last_preview: args.body.slice(0, 80) })
+    .update({ last_message_at: new Date().toISOString(), last_preview: args.body.slice(0, 80) || PREVIEW[args.type ?? ""] || "Mensagem" })
     .eq("phone", phone);
 }
 

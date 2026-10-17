@@ -328,3 +328,78 @@ export async function sendTemplateMessage(
     return { ok: false, error: err instanceof Error ? err.message : "Falha desconhecida ao enviar." };
   }
 }
+
+export type OutboundMediaKind = "image" | "video" | "audio" | "document";
+
+// Regras da Meta pra mídia enviada (tipos e tamanhos aceitos).
+export function classifyMedia(mime: string): { kind: OutboundMediaKind; maxMb: number } | null {
+  if (["image/jpeg", "image/png"].includes(mime)) return { kind: "image", maxMb: 5 };
+  if (["video/mp4", "video/3gpp"].includes(mime)) return { kind: "video", maxMb: 16 };
+  if (["audio/aac", "audio/mp4", "audio/mpeg", "audio/amr", "audio/ogg"].includes(mime))
+    return { kind: "audio", maxMb: 16 };
+  if (
+    [
+      "application/pdf",
+      "text/plain",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ].includes(mime)
+  )
+    return { kind: "document", maxMb: 100 };
+  return null;
+}
+
+// Sobe o arquivo pra Meta e manda como mensagem — vale dentro da janela de 24h.
+export async function sendMediaMessage(
+  phoneDigits: string,
+  file: { bytes: ArrayBuffer; mime: string; name: string },
+  kind: OutboundMediaKind,
+  caption?: string
+): Promise<SendResult> {
+  const phoneNumberId = getPhoneNumberId();
+  const token = getAccessToken();
+  if (!phoneNumberId || !token) {
+    return { ok: false, error: "API do WhatsApp não configurada." };
+  }
+  try {
+    const form = new FormData();
+    form.append("messaging_product", "whatsapp");
+    form.append("type", file.mime);
+    form.append("file", new Blob([file.bytes], { type: file.mime }), file.name);
+    const up = await fetch(`${GRAPH_API_BASE}/${phoneNumberId}/media`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: form,
+    });
+    const upData = (await up.json().catch(() => ({}))) as { id?: string; error?: { message?: string } };
+    if (!up.ok || !upData.id) {
+      return { ok: false, error: upData.error?.message ?? `Meta respondeu ${up.status} no upload.` };
+    }
+
+    const media: Record<string, unknown> = { id: upData.id };
+    if (caption && kind !== "audio") media.caption = caption;
+    if (kind === "document") media.filename = file.name;
+    const res = await fetch(`${GRAPH_API_BASE}/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: toWhatsAppE164(phoneDigits),
+        type: kind,
+        [kind]: media,
+      }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      messages?: { id?: string }[];
+      error?: { message?: string };
+    };
+    if (!res.ok) return { ok: false, error: data.error?.message ?? `Meta respondeu ${res.status}.` };
+    return { ok: true, providerId: data.messages?.[0]?.id ?? "" };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Falha ao enviar mídia." };
+  }
+}
