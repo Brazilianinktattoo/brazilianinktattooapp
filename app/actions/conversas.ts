@@ -80,7 +80,7 @@ export async function blockConversation(phone: string): Promise<{ error?: string
     return { ok: true };
   }
   return {
-    error: /24/.test(result.error ?? "") || /window|recent/i.test(result.error ?? "")
+    error: /re-engagement|24|window|recent/i.test(result.error ?? "")
       ? "A Meta só deixa bloquear quem escreveu nas últimas 24h."
       : `Não foi possível bloquear: ${result.error}`,
   };
