@@ -1,5 +1,7 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { processWebhookPayload } from "@/lib/whatsapp/inbox";
 
 // Webhook da Meta pro número oficial do estúdio — recebe atualização de
 // status de cada mensagem enviada (sent/delivered/read/failed, com o
@@ -30,7 +32,25 @@ export async function GET(request: NextRequest) {
 // POST aqui. Só grava o payload cru — sem isso não tinha como saber por
 // que uma mensagem "aceita" pela API nunca chegava no telefone.
 export async function POST(request: NextRequest) {
-  const payload = await request.json().catch(() => null);
+  const raw = await request.text();
+
+  // Se META_APP_SECRET estiver configurado (Vercel), exige a assinatura que a
+  // Meta manda em cada chamada — sem isso qualquer um conseguiria injetar
+  // mensagens falsas na caixa de entrada.
+  const appSecret = process.env.META_APP_SECRET;
+  if (appSecret) {
+    const sig = request.headers.get("x-hub-signature-256") ?? "";
+    const expected = `sha256=${createHmac("sha256", appSecret).update(raw).digest("hex")}`;
+    const ok = sig.length === expected.length && timingSafeEqual(Buffer.from(sig), Buffer.from(expected));
+    if (!ok) return NextResponse.json({ error: "invalid signature" }, { status: 401 });
+  }
+
+  let payload: unknown = null;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    payload = null;
+  }
 
   if (payload) {
     try {
@@ -38,6 +58,15 @@ export async function POST(request: NextRequest) {
       await admin.from("whatsapp_webhook_events").insert({ payload });
     } catch {
       // best-effort — nunca falha a resposta pra Meta por causa disso
+    }
+  }
+
+  // Alimenta a caixa de entrada (Conversas) — também best-effort.
+  if (payload) {
+    try {
+      await processWebhookPayload(payload);
+    } catch (err) {
+      console.error("whatsapp: falha ao processar webhook pra caixa de entrada", err);
     }
   }
 

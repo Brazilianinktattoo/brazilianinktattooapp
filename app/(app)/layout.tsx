@@ -35,6 +35,15 @@ export default async function AppLayout({
     .limit(20)
     .returns<Notification[]>();
 
+  let unreadConversations = 0;
+  if (profile.role === "admin") {
+    const { data: unread } = await supabase
+      .from("whatsapp_conversations")
+      .select("unread_count")
+      .gt("unread_count", 0);
+    unreadConversations = (unread ?? []).reduce((s, r) => s + r.unread_count, 0);
+  }
+
   return (
     <div className="relative min-h-dvh bg-neutral-950 text-neutral-100">
       {/* Marca d'água — logo fixa no fundo, bem discreta, atrás de todo o
@@ -166,6 +175,9 @@ export default async function AppLayout({
                   </Link>
                   <Link href="/raio-x" className={NAV_LINK_CLASS}>
                     Raio-X
+                  </Link>
+                  <Link href="/conversas" className={NAV_LINK_CLASS}>
+                    Conversas{unreadConversations > 0 ? ` (${unreadConversations})` : ""}
                   </Link>
                   <Link href="/mensagens" className={NAV_LINK_CLASS}>
                     Mensagens

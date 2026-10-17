@@ -119,6 +119,33 @@ export type Client = {
   updated_at: string;
 };
 
+export type WhatsappConversation = {
+  phone: string;
+  display_name: string | null;
+  client_id: string | null;
+  last_message_at: string;
+  last_inbound_at: string | null;
+  last_preview: string | null;
+  unread_count: number;
+  last_admin_alert_at: string | null;
+};
+
+export type WhatsappMessage = {
+  id: string;
+  wa_message_id: string | null;
+  phone: string;
+  direction: "in" | "out";
+  type: string;
+  body: string | null;
+  media_id: string | null;
+  media_path: string | null;
+  mime_type: string | null;
+  status: string | null;
+  error: string | null;
+  sent_by: string | null;
+  created_at: string;
+};
+
 export type MessageTrigger =
   | "aniversario"
   | "pos_tattoo_1"
@@ -692,6 +719,18 @@ export type Database = {
         Row: Notification;
         Insert: Partial<Notification> & { profile_id: string; message: string };
         Update: Partial<Notification>;
+        Relationships: [];
+      };
+      whatsapp_conversations: {
+        Row: WhatsappConversation;
+        Insert: Partial<WhatsappConversation> & { phone: string };
+        Update: Partial<WhatsappConversation>;
+        Relationships: [];
+      };
+      whatsapp_messages: {
+        Row: WhatsappMessage;
+        Insert: Partial<WhatsappMessage> & { phone: string; direction: "in" | "out" };
+        Update: Partial<WhatsappMessage>;
         Relationships: [];
       };
       whatsapp_webhook_events: {

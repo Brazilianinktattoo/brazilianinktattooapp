@@ -1,5 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import { sendWhatsAppMessage, sendTemplateMessage } from "./meta-client";
+import { recordOutbound } from "./inbox";
 import type { MessageQueueItem } from "@/lib/types/database";
 
 // Mapeia o "kind" da fila pro modelo aprovado pela Meta correspondente —
@@ -79,6 +80,12 @@ export async function dispatchPendingBatch(): Promise<DispatchResult> {
           : await sendWhatsAppMessage(item.client.phone, item.body);
 
     if (result.ok) {
+      await recordOutbound(supabase, {
+        phone: item.client.phone,
+        waMessageId: result.providerId || null,
+        body: item.body,
+        type: "template",
+      }).catch(() => null);
       await supabase
         .from("message_queue")
         .update({
