@@ -6,6 +6,7 @@ import { REPLY_WINDOW_MS } from "@/lib/whatsapp/inbox";
 import { AutoRefresh } from "../auto-refresh";
 import { formatPhone } from "../page";
 import { MediaView } from "./media-link";
+import { ContactActions } from "./contact-actions";
 import { ReplyForm } from "./reply-form";
 
 type Msg = {
@@ -51,6 +52,9 @@ export default async function ConversaPage(props: PageProps<"/conversas/[phone]"
         </Link>
         <h1 className="mt-1 text-xl font-semibold text-white">{conv.display_name || formatPhone(phone)}</h1>
         <p className="text-sm text-neutral-500">{formatPhone(phone)}</p>
+        <div className="mt-2">
+          <ContactActions phone={phone} ignored={conv.ignored} blocked={conv.blocked} />
+        </div>
       </div>
 
       <div className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto rounded-xl border border-neutral-800 bg-neutral-900/40 p-4">

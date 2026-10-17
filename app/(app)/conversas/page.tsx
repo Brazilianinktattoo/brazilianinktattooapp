@@ -10,6 +10,7 @@ type Conv = {
   last_inbound_at: string | null;
   last_preview: string | null;
   unread_count: number;
+  ignored: boolean;
 };
 
 function when(iso: string) {
@@ -27,13 +28,16 @@ export function formatPhone(p: string) {
   return `+${d}`;
 }
 
-export default async function ConversasPage() {
+export default async function ConversasPage(props: PageProps<"/conversas">) {
   await requireAdmin();
+  const sp = await props.searchParams;
+  const showIgnored = sp.arquivadas === "1";
   const supabase = await createClient();
   const { data } = await supabase
     .from("whatsapp_conversations")
     .select("*")
     .not("last_inbound_at", "is", null)
+    .eq("ignored", showIgnored)
     .order("last_message_at", { ascending: false })
     .limit(200)
     .returns<Conv[]>();
@@ -48,6 +52,17 @@ export default async function ConversasPage() {
           Respostas dos clientes no WhatsApp do estúdio. Você pode responder livremente por 24h depois
           da última mensagem do cliente.
         </p>
+      </div>
+      <div className="flex gap-3 text-sm">
+        <Link href="/conversas" className={showIgnored ? "text-neutral-500 hover:text-white" : "text-gold"}>
+          Clientes
+        </Link>
+        <Link
+          href="/conversas?arquivadas=1"
+          className={showIgnored ? "text-gold" : "text-neutral-500 hover:text-white"}
+        >
+          Não são clientes
+        </Link>
       </div>
       <div className="flex flex-col divide-y divide-neutral-800 overflow-hidden rounded-xl border border-neutral-800">
         {list.map((c) => (
@@ -73,7 +88,7 @@ export default async function ConversasPage() {
           </Link>
         ))}
         {list.length === 0 && (
-          <p className="p-6 text-center text-neutral-500">Nenhuma resposta de cliente ainda.</p>
+          <p className="p-6 text-center text-neutral-500">{showIgnored ? "Nenhuma conversa arquivada." : "Nenhuma resposta de cliente ainda."}</p>
         )}
       </div>
     </div>

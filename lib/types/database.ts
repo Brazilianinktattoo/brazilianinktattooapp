@@ -128,6 +128,8 @@ export type WhatsappConversation = {
   last_preview: string | null;
   unread_count: number;
   last_admin_alert_at: string | null;
+  ignored: boolean;
+  blocked: boolean;
 };
 
 export type WhatsappMessage = {

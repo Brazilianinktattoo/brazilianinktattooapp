@@ -191,7 +191,7 @@ export async function processWebhookPayload(payload: unknown) {
       const preview = d.body?.slice(0, 80) || PREVIEW[m.type] || "Mensagem";
       const { data: conv } = await admin
         .from("whatsapp_conversations")
-        .select("unread_count, display_name, last_admin_alert_at")
+        .select("unread_count, display_name, last_admin_alert_at, ignored")
         .eq("phone", phone)
         .single();
       await admin
@@ -200,12 +200,12 @@ export async function processWebhookPayload(payload: unknown) {
           last_message_at: at,
           last_inbound_at: at,
           last_preview: preview,
-          unread_count: (conv?.unread_count ?? 0) + 1,
+          unread_count: conv?.ignored ? 0 : (conv?.unread_count ?? 0) + 1,
         })
         .eq("phone", phone);
 
       // Reações não são conversa — não acordam ninguém.
-      if (m.type === "reaction") continue;
+      if (m.type === "reaction" || conv?.ignored) continue;
       await notifyAdmins(admin, phone, conv?.display_name ?? profileName ?? phone, preview, conv?.last_admin_alert_at);
     }
   }
@@ -274,4 +274,34 @@ export async function recordOutbound(
     .from("whatsapp_conversations")
     .update({ last_message_at: new Date().toISOString(), last_preview: args.body.slice(0, 80) })
     .eq("phone", phone);
+}
+
+// Bloqueia o contato na API oficial da Meta (ele não consegue mais escrever).
+// A Meta só aceita bloquear quem mandou mensagem nas últimas 24h — fora disso
+// devolve erro, que repassamos.
+export async function blockContact(phone: string): Promise<{ ok: boolean; error?: string }> {
+  const id = process.env.META_PHONE_NUMBER_ID;
+  const token = process.env.META_WHATSAPP_TOKEN;
+  if (!id || !token) return { ok: false, error: "API do WhatsApp não configurada." };
+  try {
+    const res = await fetch(`${GRAPH}/${id}/block_users`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ messaging_product: "whatsapp", block_users: [{ user: phone }] }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      block_users?: { failed_users?: { errors?: { message?: string }[] }[] };
+      error?: { message?: string };
+    };
+    const failed = data.block_users?.failed_users?.[0];
+    if (!res.ok || failed) {
+      return {
+        ok: false,
+        error: failed?.errors?.[0]?.message ?? data.error?.message ?? `Meta respondeu ${res.status}.`,
+      };
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Falha ao bloquear." };
+  }
 }
