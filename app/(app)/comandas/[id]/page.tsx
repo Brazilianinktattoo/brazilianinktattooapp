@@ -16,6 +16,7 @@ import { ComandaDocuments } from "./comanda-documents";
 import { CloseComandaForm } from "./close-comanda-form";
 import { DeleteComandaButton } from "./delete-comanda-button";
 import { EditComandaDatesForm } from "./edit-comanda-dates-form";
+import { EditComandaUnitForm } from "./edit-comanda-unit-form";
 import { CommissionRow } from "./commission-row";
 import { ClientIsOwnToggle } from "./client-is-own-toggle";
 import { PAYMENT_METHOD_LABEL } from "@/lib/fees";
@@ -24,6 +25,7 @@ import type {
   ComandaJewelry as ComandaJewelryRow,
   ComandaDocument,
   JewelryCatalogItem,
+  Unit,
 } from "@/lib/types/database";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -88,6 +90,7 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
     { data: serviceCatalog },
     { data: anamnese },
     { data: documents },
+    { data: allUnits },
   ] = await Promise.all([
     supabase
       .from("comanda_services")
@@ -139,6 +142,9 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
       .eq("comanda_id", id)
       .order("created_at")
       .returns<ComandaDocument[]>(),
+    canEditDates
+      ? supabase.from("units").select("*").eq("active", true).order("name").returns<Unit[]>()
+      : Promise.resolve({ data: null }),
   ]);
 
   const servicesTotal = (services ?? []).reduce((s, i) => s + i.price, 0);
@@ -218,6 +224,10 @@ export default async function ComandaPage(props: PageProps<"/comandas/[id]">) {
           createdAt={comanda.created_at}
           closedAt={comanda.closed_at}
         />
+      )}
+
+      {canEditDates && (
+        <EditComandaUnitForm comandaId={comanda.id} unitId={comanda.unit_id} units={allUnits ?? []} />
       )}
 
       <ComandaServices

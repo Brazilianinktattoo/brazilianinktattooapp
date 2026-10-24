@@ -317,6 +317,34 @@ export async function deleteComanda(id: string): Promise<DeleteComandaResult> {
   }
 
   const supabase = await createClient();
+  const admin = createAdminClient();
+
+  // Só chama o admin client depois de confirmar que essa pessoa pode mexer
+  // nessa comanda (Chefe de Piercing só nas de piercing, igual à RLS).
+  const { data: target } = await admin
+    .from("comandas")
+    .select("appointment_id, collaborator:profiles!comandas_collaborator_id_fkey(role)")
+    .eq("id", id)
+    .maybeSingle<{ appointment_id: string | null; collaborator: { role: string } | null }>();
+  if (!target) return { error: "Comanda não encontrada." };
+  if (
+    profile.role === "chefe_piercing" &&
+    target.collaborator?.role !== "piercer" &&
+    target.collaborator?.role !== "chefe_piercing"
+  ) {
+    return {
+      error:
+        "Sem permissão pra excluir essa comanda específica — confere se ela é sua ou de outro body piercer, se você for Chefe de Piercing.",
+    };
+  }
+
+  // Excluir a comanda faz o banco zerar message_queue.comanda_id das
+  // mensagens automáticas dela — se o mesmo cliente tiver outra mensagem do
+  // mesmo tipo/dia (duas comandas no mesmo dia), isso colide com o índice
+  // único de dedupe e a exclusão falhava pra todo mundo. Mensagem de uma
+  // comanda que não existe mais também não deve sair, então some junto.
+  await admin.from("message_queue").delete().eq("comanda_id", id);
+
   const { error, count } = await supabase
     .from("comandas")
     .delete({ count: "exact" })
@@ -330,6 +358,23 @@ export async function deleteComanda(id: string): Promise<DeleteComandaResult> {
       error:
         "Sem permissão pra excluir essa comanda específica — confere se ela é sua ou de outro body piercer, se você for Chefe de Piercing.",
     };
+  }
+
+  // Comanda aberta direto (sem agendamento) deixa um bloco "confirmado" na
+  // agenda do profissional só pra existir — sem a comanda ele vira fantasma.
+  if (target.appointment_id) {
+    const { data: block } = await admin
+      .from("appointments")
+      .select("notes")
+      .eq("id", target.appointment_id)
+      .maybeSingle();
+    if (block?.notes?.startsWith("Comanda aberta")) {
+      const { count: others } = await admin
+        .from("comandas")
+        .select("id", { count: "exact", head: true })
+        .eq("appointment_id", target.appointment_id);
+      if (!others) await admin.from("appointments").delete().eq("id", target.appointment_id);
+    }
   }
 
   revalidatePath("/comandas");
@@ -389,6 +434,58 @@ export async function updateComandaDates(
       error:
         "Sem permissão pra editar essa comanda específica — confere se ela é sua ou de outro body piercer, se você for Chefe de Piercing.",
     };
+  }
+
+  revalidatePath(`/comandas/${id}`);
+  revalidatePath("/comandas");
+  return { success: true };
+}
+
+// Local de atendimento (unidade) da comanda — Admin em qualquer comanda,
+// Chefe de Piercing nas de piercing (mesma regra das datas). A unidade
+// manda na comissão (Barra Shopping = 50%) e nos relatórios por unidade.
+export async function updateComandaUnit(
+  id: string,
+  unitId: string
+): Promise<UpdateComandaDatesResult> {
+  const { profile } = await requireProfile();
+  if (profile.role !== "admin" && profile.role !== "chefe_piercing") {
+    return { error: "Sem permissão pra mudar o local de atendimento." };
+  }
+  if (!unitId) return { error: "Escolha o local." };
+
+  const supabase = await createClient();
+  const { data: updated, error } = await supabase
+    .from("comandas")
+    .update({ unit_id: unitId })
+    .eq("id", id)
+    .select("appointment_id");
+  if (error) return { error: `Não foi possível salvar o local (${error.message}).` };
+  if (!updated || updated.length === 0) {
+    return {
+      error:
+        "Sem permissão pra editar essa comanda específica — confere se ela é sua ou de outro body piercer, se você for Chefe de Piercing.",
+    };
+  }
+
+  // O agendamento da comanda acompanha (agenda/mapa leem a unidade dele). Se
+  // a maca reservada é de outra unidade, ela não vale mais na nova.
+  const appointmentId = updated[0].appointment_id;
+  if (appointmentId) {
+    const admin = createAdminClient();
+    const { data: appt } = await admin
+      .from("appointments")
+      .select("maca_id, maca:macas(unit_id)")
+      .eq("id", appointmentId)
+      .maybeSingle<{ maca_id: string | null; maca: { unit_id: string } | null }>();
+    const macaMismatch = !!appt?.maca_id && appt.maca?.unit_id !== unitId;
+    const { error: apptError } = await admin
+      .from("appointments")
+      .update({ unit_id: unitId, ...(macaMismatch ? { maca_id: null } : {}) })
+      .eq("id", appointmentId);
+    if (apptError) {
+      return { error: `Local da comanda salvo, mas o agendamento não acompanhou (${apptError.message}).` };
+    }
   }
 
   revalidatePath(`/comandas/${id}`);
