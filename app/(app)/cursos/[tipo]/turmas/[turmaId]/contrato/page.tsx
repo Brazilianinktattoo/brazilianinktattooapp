@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { COURSE_TYPE_LABELS } from "@/lib/cursos";
 import { hasContractTemplate } from "@/lib/contracts/course-contract";
 import type { CourseContract, CourseEnrollment } from "@/lib/types/database";
 import { getCourseClassOrNotFound } from "../get-course-class";
@@ -12,7 +11,7 @@ export default async function ContratoPage(
 ) {
   const { tipo, turmaId } = await props.params;
   await requireAdmin();
-  const { supabase, courseType, courseClass } = await getCourseClassOrNotFound(
+  const { supabase, courseType, courseClass, courseLabel } = await getCourseClassOrNotFound(
     tipo,
     turmaId
   );
@@ -69,7 +68,7 @@ export default async function ContratoPage(
               key={e.id}
               enrollment={e}
               contract={contractByEnrollment.get(e.id) ?? null}
-              courseLabel={COURSE_TYPE_LABELS[courseType]}
+              courseLabel={courseLabel}
               className={courseClass.name}
               priceTotal={courseClass.price_total}
               depositPercentage={courseClass.deposit_percentage}

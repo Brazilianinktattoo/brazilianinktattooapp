@@ -1,13 +1,5 @@
 import type { CourseType, CourseEnrollment, EnrollmentStatus } from "@/lib/types/database";
 
-export const COURSE_TYPE_LABELS: Record<CourseType, string> = {
-  tatuagem_iniciante: "Curso de Tatuagem Iniciante",
-  tatuagem_especializacao: "Curso de Especialização em Tatuagem",
-  piercing_iniciante: "Curso de Piercing Iniciante",
-  piercing_especializacao: "Curso de Especialização em Piercing",
-};
-
-export const COURSE_TYPES = Object.keys(COURSE_TYPE_LABELS) as CourseType[];
 
 // Estados que realmente ocupam vaga (contam pra lotação da turma).
 export const SEAT_HOLDING_STATUSES: EnrollmentStatus[] = [

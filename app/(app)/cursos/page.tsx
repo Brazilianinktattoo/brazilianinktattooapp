@@ -1,19 +1,20 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { COURSE_TYPES, COURSE_TYPE_LABELS } from "@/lib/cursos";
+import { fetchCourses } from "@/lib/courses";
 import type { CourseClass } from "@/lib/types/database";
+import { CourseAdmin } from "./course-admin";
 
 export default async function CursosPage() {
   await requireAdmin();
   const supabase = await createClient();
 
-  const { data: classes } = await supabase
-    .from("course_classes")
-    .select("*")
-    .returns<CourseClass[]>();
-
+  const [courses, { data: classes }] = await Promise.all([
+    fetchCourses(supabase),
+    supabase.from("course_classes").select("*").returns<CourseClass[]>(),
+  ]);
   const list = classes ?? [];
+  const active = courses.filter((c) => c.active);
 
   return (
     <div className="flex flex-col gap-6">
@@ -26,27 +27,27 @@ export default async function CursosPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        {COURSE_TYPES.map((tipo) => {
-          const turmasDoTipo = list.filter((c) => c.course_type === tipo);
-          const ativas = turmasDoTipo.filter((c) => c.active).length;
+        {active.map((course) => {
+          const turmas = list.filter((c) => c.course_type === course.slug);
+          const ativas = turmas.filter((c) => c.active).length;
           return (
             <Link
-              key={tipo}
-              href={`/cursos/${tipo}`}
+              key={course.slug}
+              href={`/cursos/${course.slug}`}
               className="rounded-xl border border-neutral-800 bg-neutral-900/40 p-5 transition hover:border-neutral-600"
             >
-              <h2 className="font-semibold text-white">
-                {COURSE_TYPE_LABELS[tipo]}
-              </h2>
+              <h2 className="font-semibold text-white">{course.name}</h2>
               <p className="mt-1 text-sm text-neutral-400">
-                {turmasDoTipo.length === 0
+                {turmas.length === 0
                   ? "Nenhuma turma criada ainda."
-                  : `${turmasDoTipo.length} turma(s) · ${ativas} ativa(s)`}
+                  : `${turmas.length} turma(s) · ${ativas} ativa(s)`}
               </p>
             </Link>
           );
         })}
       </div>
+
+      <CourseAdmin courses={courses} />
     </div>
   );
 }

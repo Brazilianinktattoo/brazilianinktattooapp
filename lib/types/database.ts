@@ -592,11 +592,16 @@ export type CoworkingPassWithRelations = CoworkingPass & {
   maca: Pick<Maca, "id" | "label"> | null;
 };
 
-export type CourseType =
-  | "tatuagem_iniciante"
-  | "tatuagem_especializacao"
-  | "piercing_iniciante"
-  | "piercing_especializacao";
+export type CourseType = string;
+
+export type Course = {
+  slug: string;
+  name: string;
+  area: "tatuagem" | "piercing";
+  active: boolean;
+  sort_order: number;
+  created_at: string;
+};
 
 // "confirmado" não é persistido — é derivado em lib/cursos.ts a partir de
 // status='inscrito' + mais de 7 dias desde a inscrição.
@@ -907,6 +912,12 @@ export type Database = {
           ends_at: string;
         };
         Update: Partial<CoworkingPass>;
+        Relationships: [];
+      };
+      courses: {
+        Row: Course;
+        Insert: Partial<Course> & { slug: string; name: string };
+        Update: Partial<Course>;
         Relationships: [];
       };
       course_classes: {

@@ -1,5 +1,6 @@
 "use server";
 
+import { slugify } from "@/lib/courses";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -34,13 +35,6 @@ function dateTimeLabel(d: Date) {
   return `${date} às ${time}`;
 }
 
-const COURSE_TYPES: CourseType[] = [
-  "tatuagem_iniciante",
-  "tatuagem_especializacao",
-  "piercing_iniciante",
-  "piercing_especializacao",
-];
-
 // -- Turmas ------------------------------------------------------------------
 
 export type CourseClassFormState = {
@@ -63,8 +57,14 @@ export async function createCourseClass(
     formData.get("deposit_percentage") ?? "15"
   ).replace(",", ".");
 
-  if (!COURSE_TYPES.includes(course_type)) {
-    return { error: "Tipo de curso inválido." };
+  const { data: courseRow } = await (await createClient())
+    .from("courses")
+    .select("slug")
+    .eq("slug", course_type)
+    .eq("active", true)
+    .maybeSingle();
+  if (!courseRow) {
+    return { error: "Tipo de curso inválido ou desativado." };
   }
   if (!name) return { error: "Dê um nome para a turma." };
 
@@ -528,4 +528,57 @@ export async function getPublicContractFileUrl(token: string) {
     .from("contratos")
     .createSignedUrl(contract.file_path, 60 * 10);
   return data?.signedUrl ?? null;
+}
+
+// -- Cursos (lista editável) ---------------------------------------------------
+
+export type CourseFormState = { error?: string; success?: boolean };
+
+export async function createCourse(
+  _prev: CourseFormState,
+  formData: FormData
+): Promise<CourseFormState> {
+  await requireAdmin();
+  const name = String(formData.get("name") ?? "").trim();
+  const area = String(formData.get("area") ?? "tatuagem");
+  if (!name) return { error: "Dê um nome pro curso." };
+  if (area !== "tatuagem" && area !== "piercing") return { error: "Área inválida." };
+
+  const supabase = await createClient();
+  let slug = slugify(name);
+  if (!slug) return { error: "Nome inválido." };
+  const { data: clash } = await supabase.from("courses").select("slug").eq("slug", slug).maybeSingle();
+  if (clash) slug = `${slug}_${Date.now().toString(36)}`;
+
+  const { data: last } = await supabase
+    .from("courses")
+    .select("sort_order")
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const { error } = await supabase
+    .from("courses")
+    .insert({ slug, name, area, sort_order: (last?.sort_order ?? 0) + 10 });
+  if (error) return { error: "Não foi possível criar o curso." };
+
+  revalidatePath("/cursos");
+  return { success: true };
+}
+
+export async function renameCourse(slug: string, name: string) {
+  await requireAdmin();
+  const clean = name.trim();
+  if (!clean) return { error: "O nome não pode ficar vazio." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("courses").update({ name: clean }).eq("slug", slug);
+  if (error) return { error: "Não foi possível renomear." };
+  revalidatePath("/cursos");
+  return {};
+}
+
+export async function setCourseActive(slug: string, active: boolean) {
+  await requireAdmin();
+  const supabase = await createClient();
+  await supabase.from("courses").update({ active }).eq("slug", slug);
+  revalidatePath("/cursos");
 }

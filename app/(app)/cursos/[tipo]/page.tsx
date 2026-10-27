@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { COURSE_TYPES, COURSE_TYPE_LABELS, SEAT_HOLDING_STATUSES } from "@/lib/cursos";
+import { SEAT_HOLDING_STATUSES } from "@/lib/cursos";
+import { courseLabelMap, fetchCourses } from "@/lib/courses";
 import type { CourseClass, CourseType } from "@/lib/types/database";
 import { NewClassForm } from "./new-class-form";
 import { ClassRow } from "./class-row";
@@ -11,11 +12,11 @@ export default async function CourseTypePage(
   props: PageProps<"/cursos/[tipo]">
 ) {
   const { tipo } = await props.params;
-  if (!COURSE_TYPES.includes(tipo as CourseType)) notFound();
-  const courseType = tipo as CourseType;
-
   await requireAdmin();
   const supabase = await createClient();
+  const courses = await fetchCourses(supabase);
+  if (!courses.some((c) => c.slug === tipo)) notFound();
+  const courseType = tipo as CourseType;
 
   const { data: classes } = await supabase
     .from("course_classes")
@@ -46,7 +47,7 @@ export default async function CourseTypePage(
           ← Cursos
         </Link>
         <h1 className="mt-1 text-xl font-semibold text-white">
-          {COURSE_TYPE_LABELS[courseType]}
+          {courseLabelMap(courses)[courseType]}
         </h1>
         <p className="text-neutral-400">
           Cada turma tem suas próprias vagas, inscrições, contrato, pagamento

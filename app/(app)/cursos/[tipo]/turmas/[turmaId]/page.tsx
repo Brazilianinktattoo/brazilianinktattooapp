@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/lib/auth";
-import { COURSE_TYPE_LABELS, SEAT_HOLDING_STATUSES } from "@/lib/cursos";
+import { SEAT_HOLDING_STATUSES } from "@/lib/cursos";
 import { getCourseClassOrNotFound } from "./get-course-class";
 
 function formatMoney(v: number) {
@@ -12,7 +12,7 @@ export default async function CourseClassPage(
 ) {
   const { tipo, turmaId } = await props.params;
   await requireAdmin();
-  const { supabase, courseType, courseClass } = await getCourseClassOrNotFound(
+  const { supabase, courseType, courseClass, courseLabel } = await getCourseClassOrNotFound(
     tipo,
     turmaId
   );
@@ -34,7 +34,7 @@ export default async function CourseClassPage(
           href={`/cursos/${courseType}`}
           className="text-sm text-neutral-500 hover:text-white"
         >
-          ← {COURSE_TYPE_LABELS[courseType]}
+          ← {courseLabel}
         </Link>
         <h1 className="mt-1 text-xl font-semibold text-white">{courseClass.name}</h1>
         <p className="text-neutral-400">

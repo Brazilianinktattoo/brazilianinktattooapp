@@ -5,18 +5,12 @@ import { requireAdmin, requireProfile } from "@/lib/auth";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { STUDIO_TZ } from "@/lib/date";
 import { renderCourseReceiptPdf } from "@/lib/documents/course-receipt";
+import { courseLabelMap, fetchCourses } from "@/lib/courses";
 import { CONTRACT_VARIANTS } from "@/lib/contracts/course-contract";
 import type { CourseEnrollment, CoursePayment, CourseType } from "@/lib/types/database";
 
-const COURSE_TYPE_LABEL: Record<CourseType, string> = {
-  tatuagem_iniciante: "Curso de Tatuagem para Iniciantes",
-  tatuagem_especializacao: "Curso de Especialização em Tatuagem",
-  piercing_iniciante: "Curso de Piercing para Iniciantes",
-  piercing_especializacao: "Curso de Especialização em Piercing",
-};
-
-function courseDisplayName(courseType: CourseType) {
-  return CONTRACT_VARIANTS[courseType]?.courseTitle ?? COURSE_TYPE_LABEL[courseType];
+function courseDisplayName(courseType: CourseType, labels: Record<string, string>) {
+  return CONTRACT_VARIANTS[courseType]?.courseTitle ?? labels[courseType] ?? "Curso";
 }
 
 function dateExtenso(d: Date) {
@@ -71,7 +65,10 @@ export async function generateCourseReceipt(
     cep: "",
     amount: payment.amount,
     courseName: payment.enrollment.course_class
-      ? courseDisplayName(payment.enrollment.course_class.course_type)
+      ? courseDisplayName(
+          payment.enrollment.course_class.course_type,
+          courseLabelMap(await fetchCourses(supabase))
+        )
       : "Curso",
     dateExtenso: dateExtenso(new Date(payment.paid_at)),
   });

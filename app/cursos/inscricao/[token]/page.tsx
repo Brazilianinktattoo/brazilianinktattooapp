@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
-import { COURSE_TYPE_LABELS } from "@/lib/cursos";
+import { courseLabelMap, fetchCourses } from "@/lib/courses";
 import type { CourseClass, CourseSignupLink } from "@/lib/types/database";
 import { SignupForm } from "./signup-form";
 
@@ -61,7 +61,7 @@ export default async function CourseSignupPage(
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-xl font-semibold text-white">
-          {COURSE_TYPE_LABELS[courseClass.course_type]}
+          {courseLabelMap(await fetchCourses(admin))[courseClass.course_type] ?? "Curso"}
         </h1>
         <p className="text-neutral-400">{courseClass.name}</p>
       </div>
